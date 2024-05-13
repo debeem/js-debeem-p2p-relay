@@ -15,11 +15,10 @@ import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { circuitRelayTransport, circuitRelayServer } from 'libp2p/circuit-relay'
 import { identifyService } from 'libp2p/identify'
 
-import { TypeUtil, LogUtil } from 'debeem-utils';
+import { LogUtil } from 'debeem-utils';
 import { PeerUtil } from "../utils/PeerUtil.js";
 
-import { logger, enable } from "@libp2p/logger";
-import { toString as uint8ArrayToString } from "uint8arrays/to-string";
+import { logger } from "@libp2p/logger";
 import _ from "lodash";
 import chalk from "chalk";
 //enable( 'libp2p:floodsub' );
