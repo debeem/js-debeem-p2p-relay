@@ -1,18 +1,19 @@
 /**
  * 	@export
  */
-import { CreateP2pOptionsBuilder } from "./models/CreateP2pOptionsBuilder.js";
-export { CreateP2pOptionsBuilder }
-
-import { CreateRelayOptionsBuilder } from "./models/CreateRelayOptionsBuilder.js";
-export { CreateRelayOptionsBuilder }
+export * from "./models/P2pNodeOptionsBuilder.js";
+export * from "./models/P2pRelayOptionsBuilder.js";
 
 
 /**
  * 	@export services
  */
-import { AbstractP2pPackagePool } from "./services/AbstractP2pPackagePool.js";
-export { AbstractP2pPackagePool }
+export * from "./services/AbstractP2pPackagePool.js";
+export * from "./services/RelayService.js";
 
-import { RelayService } from "./services/RelayService.js";
-export { RelayService }
+
+/**
+ *      @export validators
+ */
+export * from "./validators/VaP2pNodeOptions.js";
+export * from "./validators/VaP2pRelayOptions.js";

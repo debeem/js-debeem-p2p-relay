@@ -16,6 +16,7 @@ class Publisher extends BasePubSub
 		{
 			try
 			{
+				process.env.P2P_ANNOUNCES = undefined;
 				await super.start( ( param ) =>
 				{
 					if ( _.isObject( param.body ) &&
@@ -51,6 +52,7 @@ class Publisher extends BasePubSub
 	{
 		setInterval( async () =>
 		{
+			console.log( `))) will publish data` );
 			// const report = this.relayService.checkHealth( this.subTopic );
 			// if ( null !== report.errors )
 			// {
@@ -82,6 +84,8 @@ class Publisher extends BasePubSub
 }
 
 //	...
-new Publisher().start().then( _result =>
+new Publisher().start().then( result =>
 {
+	console.log( `))) final result: `, result );
+
 } ).catch( _err => console.error );

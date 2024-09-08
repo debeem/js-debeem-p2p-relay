@@ -1,5 +1,6 @@
 import { BasePubSub } from "./BasePubSub.js";
 import _ from "lodash";
+import { LogUtil } from "debeem-utils";
 
 
 class Subscriber extends BasePubSub
@@ -16,6 +17,7 @@ class Subscriber extends BasePubSub
 		{
 			try
 			{
+				process.env.P2P_ANNOUNCES = undefined;
 				await super.start( ( param ) =>
 				{
 					if ( _.isObject( param.body ) &&
@@ -48,4 +50,6 @@ class Subscriber extends BasePubSub
 }
 
 //	...
-new Subscriber().start().then( _result =>{}).catch( _err => console.error );
+new Subscriber().start()
+	.then( ( res ) => LogUtil.info( `res :`, res ) )
+	.catch( err => { LogUtil.error( err ) } );

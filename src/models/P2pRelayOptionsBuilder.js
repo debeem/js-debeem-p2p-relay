@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-discovery';
+import { VaP2pRelayOptions } from "../validators/VaP2pRelayOptions.js";
 
 /**
- *	@typedef  CreateRelayOptions {object}
+ *	@typedef  P2pRelayOptions {object}
  *	@property peerIdFilename {string}
  *	@property swarmKeyFilename {string}
  *	@property port {number}
@@ -16,17 +17,17 @@ import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-di
 /**
  * 	@class
  */
-export class CreateRelayOptionsBuilder
+export class P2pRelayOptionsBuilder
 {
 	/**
 	 *	@type {string}
 	 */
-	peerIdFilename = '';
+	peerIdFilename = undefined;
 
 	/**
 	 *	@type {string}
 	 */
-	swarmKeyFilename = '';
+	swarmKeyFilename = undefined;
 
 	/**
 	 *	@type {number}
@@ -55,11 +56,11 @@ export class CreateRelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {CreateRelayOptionsBuilder}
+	 *	@returns {P2pRelayOptionsBuilder}
 	 */
 	static builder()
 	{
-		return new CreateRelayOptionsBuilder();
+		return new P2pRelayOptionsBuilder();
 	}
 
 
@@ -122,45 +123,14 @@ export class CreateRelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {CreateRelayOptions}
+	 *	@returns {P2pRelayOptions}
 	 */
 	build()
 	{
-		//
-		//	if the user does not specify the correct peerIdFilename,
-		//	the default peerIdFilename will be used
-		//
-		// if ( ! _.isString( this.peerIdFilename ) || _.isEmpty( this.peerIdFilename ) )
-		// {
-		// 	throw new Error( `invalid peerIdFilename` );
-		// }
-		if ( this.swarmKeyFilename )
+		const error = VaP2pRelayOptions.validateP2pRelayOptions( this );
+		if ( null !== error )
 		{
-			if ( ! _.isString( this.swarmKeyFilename ) || _.isEmpty( this.swarmKeyFilename ) )
-			{
-				throw new Error( `${ this.constructor.name }.build :: invalid swarmKeyFilename` );
-			}
-		}
-
-		//
-		//	if the user does not specify the correct port,
-		//	the default port will be used
-		//
-		// if ( ! ProcessUtil.isValidPortNumber( this.port ) )
-		// {
-		// 	throw new Error( `${ this.constructor.name }.build :: invalid port` );
-		// }
-		if ( ! Array.isArray( this.announceAddresses ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid announceAddresses` );
-		}
-		if ( ! Array.isArray( this.bootstrapperAddresses ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid bootstrapperAddresses` );
-		}
-		if ( ! Array.isArray( this.pubsubPeerDiscoveryTopics ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid pubsubPeerDiscoveryTopics` );
+			throw new Error( `${ this.constructor.name }.build :: ${ error }` );
 		}
 
 		return {

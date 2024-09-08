@@ -1,7 +1,7 @@
 import { TimerUtil } from "debeem-utils";
 import _ from "lodash";
 import { RelayService } from "../../src/index.js";
-import { CreateRelayOptionsBuilder } from "../../src/index.js";
+import { P2pRelayOptionsBuilder } from "../../src/index.js";
 import { bootstrappers } from "../bootstrappers.js";
 import { PeerUtil } from "../../src/utils/PeerUtil.js";
 import { ProcessUtil } from "debeem-utils";
@@ -38,7 +38,7 @@ export class BasePubSub
 				const announceAddresses = PeerUtil.getAnnounceAddresses();
 				const peerIdFilename = ProcessUtil.getParamStringValue( `peer_id`, undefined );
 				const swarmKeyFilename = ProcessUtil.getParamStringValue( `swarm_key`, undefined );
-				const createRelayOptions = CreateRelayOptionsBuilder.builder()
+				const createRelayOptions = P2pRelayOptionsBuilder.builder()
 					.setPeerIdFilename( peerIdFilename )
 					.setSwarmKeyFilename( swarmKeyFilename )
 					.setPort( port )
@@ -46,6 +46,7 @@ export class BasePubSub
 					.setBootstrapperAddresses( bootstrappers )
 					.setPubsubPeerDiscoveryTopics( [] )
 					.build();
+				console.log( `will createRelay with options: `, createRelayOptions );
 				this.relayNode = await this.relayService.createRelay( createRelayOptions );
 				await this.relayService.subscribe( this.subTopic, ( param ) =>
 				{

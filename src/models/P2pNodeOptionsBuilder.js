@@ -1,13 +1,15 @@
 import _ from 'lodash';
 import { PeerUtil } from "../utils/PeerUtil.js";
 import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-discovery';
+import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
+import { circuitRelayTransport } from "@libp2p/circuit-relay-v2";
 
 /**
  * 	@typedef {import('./CallbackMessage.js')} CallbackMessage
  */
 
 /**
- *	@typedef  CreateP2pOptions {object}
+ *	@typedef  P2pNodeOptions {object}
  *	@property peerId {PeerId}
  *	@property swarmKey {Uint8Array}
  *	@property port {number}
@@ -16,14 +18,44 @@ import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-di
  *	@property bootstrapperAddresses {string[]}
  *	@property pubsubPeerDiscoveryTopics {string[]}
  *	@property callbackMessage {CallbackMessage}
+ *	@property transports {number}
  */
 
+/**
+ *	p2p node transports
+ */
+export const P2pNodeTransports = Object.freeze({
+	/**
+	 * 	circuitRelayTransport
+	 */
+	CIRCUIT_RELAY: 1 << 0,	//	00001 = 1
+
+	/**
+	 * 	tcp
+	 */
+	TCP: 1 << 1,		//	00010 = 2
+
+	/**
+	 * 	webrtc
+	 */
+	WEBRTC: 1 << 2,		//	00100 = 4
+
+	/**
+	 * 	websockets
+	 */
+	WEBSOCKETS: 1 << 3,	//	01000 = 8,
+
+	/**
+	 * 	webtransport
+	 */
+	WEBTRANSPORT: 1 << 4,	//	10000 = 16
+});
 
 
 /**
  * 	@class
  */
-export class CreateP2pOptionsBuilder
+export class P2pNodeOptionsBuilder
 {
 	/**
 	 *	@type {PeerId}
@@ -60,17 +92,24 @@ export class CreateP2pOptionsBuilder
 	 */
 	callbackMessage = null;
 
+	/**
+	 *	p2p node transports
+	 * 	@type {number}
+	 */
+	transports = P2pNodeTransports.TCP | P2pNodeTransports.CIRCUIT_RELAY;
+
+
 
 	constructor()
 	{
 	}
 
 	/**
-	 *	@returns {CreateP2pOptionsBuilder}
+	 *	@returns {P2pNodeOptionsBuilder}
 	 */
 	static builder()
 	{
-		return new CreateP2pOptionsBuilder();
+		return new P2pNodeOptionsBuilder();
 	}
 
 
@@ -144,37 +183,24 @@ export class CreateP2pOptionsBuilder
 	}
 
 	/**
-	 *	@returns {CreateP2pOptions}
+	 *	@returns {this}
+	 */
+	setTransports( /** @type {number} */ transports )
+	{
+		this.transports = transports;
+		return this;
+	}
+
+
+	/**
+	 *	@returns {P2pNodeOptions}
 	 */
 	build()
 	{
-		if ( ! PeerUtil.isValidPeerId( this.peerId ) )
+		const error = VaP2pNodeOptions.validateP2pNodeOptions( this );
+		if ( null !== error )
 		{
-			throw new Error( `${ this.constructor.name }.build :: invalid peerId` );
-		}
-		if ( ! this.swarmKey )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid swarmKey` );
-		}
-		if ( ! Array.isArray( this.listenAddresses ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid listenAddresses` );
-		}
-		if ( ! Array.isArray( this.announceAddresses ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid announceAddresses` );
-		}
-		if ( ! Array.isArray( this.bootstrapperAddresses ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid bootstrapperAddresses` );
-		}
-		if ( ! Array.isArray( this.pubsubPeerDiscoveryTopics ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid pubsubPeerDiscoveryTopics` );
-		}
-		if ( ! _.isFunction( this.callbackMessage ) )
-		{
-			throw new Error( `${ this.constructor.name }.build :: invalid callbackMessage` );
+			throw new Error( `${ this.constructor.name }.build :: ${ error }` );
 		}
 
 		return {
@@ -185,6 +211,7 @@ export class CreateP2pOptionsBuilder
 			bootstrapperAddresses : this.bootstrapperAddresses,
 			pubsubPeerDiscoveryTopics : this.pubsubPeerDiscoveryTopics,
 			callbackMessage : this.callbackMessage,
+			transports : this.transports,
 		}
 	}
 }

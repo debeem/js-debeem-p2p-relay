@@ -1,26 +1,34 @@
 import { createLibp2p } from 'libp2p';
-import { preSharedKey } from 'libp2p/pnet';
+//import { preSharedKey } from 'libp2p/pnet';
+import { preSharedKey } from '@libp2p/pnet';
 //import { createRSAPeerId, createFromJSON } from '@libp2p/peer-id-factory'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { mplex } from '@libp2p/mplex'
 import { tcp } from '@libp2p/tcp';
+import { webRTC } from '@libp2p/webrtc'
 //import { webSockets } from '@libp2p/websockets';
+import { webTransport } from '@libp2p/webtransport'
 import { bootstrap } from '@libp2p/bootstrap'
+import { webSockets } from '@libp2p/websockets'
+import * as filters from '@libp2p/websockets/filters'
 //import { verifySignature } from '@libp2p/pubsub';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 //import { gossipsub } from 'debeem-gossipsub'
 //import { floodsub } from '@libp2p/floodsub'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
-import { circuitRelayTransport, circuitRelayServer } from 'libp2p/circuit-relay'
-import { identifyService } from 'libp2p/identify'
+import { circuitRelayTransport, circuitRelayServer } from '@libp2p/circuit-relay-v2'
+//import { identifyService } from 'libp2p/identify'
+import { identify, identifyPush } from '@libp2p/identify'
 
-import { LogUtil } from 'debeem-utils';
+import { LogUtil, ProcessUtil } from 'debeem-utils';
 import { PeerUtil } from "../utils/PeerUtil.js";
 
 import { logger } from "@libp2p/logger";
 import _ from "lodash";
 import chalk from "chalk";
+import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
+import { P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 //enable( 'libp2p:floodsub' );
 
 
@@ -72,9 +80,13 @@ export class P2pService
 
 	constructor()
 	{
+		if ( ! ProcessUtil.isNodeVersionSufficient( `20.17.0` ) )
+		{
+			throw new Error( `${ this.constructor.name }.constructor :: node version cannot be lower than 20.17.0` );
+		}
 		if ( this.node )
 		{
-			throw new Error( `${ this.constructor.name } ::  already created` );
+			throw new Error( `${ this.constructor.name }.constructor ::  already created` );
 		}
 	}
 
@@ -89,38 +101,20 @@ export class P2pService
 
 	/**
 	 *	Create a Libp2p Relay with HOP service
-	 *	@param createP2pOptions	{CreateP2pOptions}
+	 *
+	 *	@param p2pNodeOptions	{P2pNodeOptions}
 	 *	@returns {Promise<Libp2p>}
 	 */
-	async createP2pNode( createP2pOptions )
+	async createP2pNode( /** @type {P2pNodeOptions} */ p2pNodeOptions )
 	{
 		return new Promise( async ( resolve, reject ) =>
 		{
 			try
 			{
-				if ( ! createP2pOptions )
+				const errorP2pNodeOptions = VaP2pNodeOptions.validateP2pNodeOptions( p2pNodeOptions );
+				if ( null !== errorP2pNodeOptions )
 				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid createP2pOptions` );
-				}
-				if ( ! PeerUtil.isValidPeerId( createP2pOptions.peerId ) )
-				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid peerId` );
-				}
-				if ( ! createP2pOptions.swarmKey )
-				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid swarmKey` );
-				}
-				if ( ! Array.isArray( createP2pOptions.listenAddresses ) || 0 === createP2pOptions.listenAddresses.length )
-				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid listenAddresses` );
-				}
-				if ( ! Array.isArray( createP2pOptions.announceAddresses ) )
-				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid announceAddresses` );
-				}
-				if ( ! Array.isArray( createP2pOptions.bootstrapperAddresses ) || 0 === createP2pOptions.bootstrapperAddresses.length )
-				{
-					return reject( `${ this.constructor.name }.createP2pNode :: invalid bootstrapperAddresses` );
+					return reject( `${ this.constructor.name }.createP2pNode :: ${ errorP2pNodeOptions }` );
 				}
 
 				//const announceAddresses = [ `/ip4/1.2.3.4/tcp/9911` ];
@@ -128,38 +122,109 @@ export class P2pService
 				//	@libp2p/pubsub-peer-discovery
 				//	export declare const TOPIC = "_peer-discovery._p2p._pubsub";
 				//
+
+
+				/**
+				 * 	@typedef {import('libp2p').Components} Components
+				 * 	@typedef {import('libp2p').Transport} Transport
+				 * 	@typedef {import('libp2p').PeerDiscovery} PeerDiscovery
+				 */
+
+				/**
+				 *	options.transports
+				 *	@type {Array<(components: Components | any ) => Transport>}
+				 */
+				let transportList = [];
+				if ( P2pNodeTransports.CIRCUIT_RELAY === ( P2pNodeTransports.CIRCUIT_RELAY & p2pNodeOptions.transports ) )
+				{
+					transportList.push( circuitRelayTransport( {
+						//
+						//	make a reservation on any discovered relays - this will let other
+						//	peers use the relay to contact us
+						//
+						discoverRelays : 1
+					} ) );
+				}
+				if ( P2pNodeTransports.TCP === ( P2pNodeTransports.TCP & p2pNodeOptions.transports ) )
+				{
+					transportList.push( tcp() );
+				}
+				if ( P2pNodeTransports.WEBRTC === ( P2pNodeTransports.WEBRTC & p2pNodeOptions.transports ) )
+				{
+					transportList.push( webRTC() );
+				}
+				if ( P2pNodeTransports.WEBSOCKETS === ( P2pNodeTransports.WEBSOCKETS & p2pNodeOptions.transports ) )
+				{
+					transportList.push( webSockets({
+						filter: filters.all
+					}) );
+				}
+				if ( P2pNodeTransports.WEBTRANSPORT === ( P2pNodeTransports.WEBTRANSPORT & p2pNodeOptions.transports ) )
+				{
+					transportList.push( webTransport() );
+				}
+
+				/**
+				 * 	options.peerDiscovery
+				 * 	@type {Array<(components: Components | any ) => PeerDiscovery>}
+				 */
+				let peerDiscoveryList = [];
+				if ( Array.isArray( p2pNodeOptions.bootstrapperAddresses ) &&
+					p2pNodeOptions.bootstrapperAddresses.length > 0 )
+				{
+					peerDiscoveryList.push( bootstrap({
+						list: p2pNodeOptions.bootstrapperAddresses
+					}) );
+				}
+				peerDiscoveryList.push(
+					//	https://github.com/libp2p/js-libp2p-pubsub-peer-discovery
+					pubsubPeerDiscovery({
+						//	How often (in ms), after initial broadcast,
+						//	your node should broadcast your peer data.
+						//	Default (10000ms)
+						interval: 3000,
+
+						//	What topics to subscribe to.
+						//	An Array of topic strings. If set, the default topic will
+						//	not be used and must be included explicitly here
+						//	Default ('_peer-discovery._p2p._pubsub')
+						topics: p2pNodeOptions.pubsubPeerDiscoveryTopics,
+
+						//	If true it will not broadcast peer data.
+						//	Do not set this unless you have a specific reason to.
+						//	Default (false)
+						listenOnly: false
+					})
+				);
+
+
+				/**
+				 *	@type {Libp2pOptions<P2pService>}
+				 */
 				const options = {
-					peerId: createP2pOptions.peerId,
+					peerId: p2pNodeOptions.peerId,
 					addresses : {
-						listen : createP2pOptions.listenAddresses,
+						listen : p2pNodeOptions.listenAddresses,
 						//announce: ['/dns4/auto-relay.libp2p.io/tcp/443/wss/p2p/QmWDn2LY8nannvSWJzruUYoLZ4vV83vfCBwd8DipvdgQc3']
-						announce : createP2pOptions.announceAddresses,
+						announce : p2pNodeOptions.announceAddresses,
 					},
-					transports : [
-						tcp(),
-						// webSockets(),
-						circuitRelayTransport()
-					],
+					transports : transportList,
 					streamMuxers : [
 						yamux(), mplex()
 					],
 					connectionEncryption : [
 						noise()
 					],
-					peerDiscovery: [
-						bootstrap({
-							list: createP2pOptions.bootstrapperAddresses
-						}),
-						//	https://github.com/libp2p/js-libp2p-pubsub-peer-discovery
-						pubsubPeerDiscovery({
-							interval: 1000,
-							topics: createP2pOptions.pubsubPeerDiscoveryTopics,
-							listenOnly: false
-						})
-					],
+					peerDiscovery: peerDiscoveryList,
 					services : {
-						relay : circuitRelayServer(),
-						identify : identifyService(),
+						relay : circuitRelayServer({
+							reservations: {
+								maxReservations: Infinity,
+								applyDefaultLimit: false
+							}
+						}),
+						identify: identify(),
+						identifyPush: identifyPush(),
 						pubsub: gossipsub({
 							//
 							//	https://github.com/ChainSafe/js-libp2p-gossipsub
@@ -172,6 +237,17 @@ export class P2pService
 
 							//	Do not throw `InsufficientPeers` error if publishing to zero peers
 							allowPublishToZeroPeers: true,
+
+							//
+							//	Do not throw PublishError.NoPeersSubscribedToTopic error
+							//	if there are no peers listening on the topic.
+							//
+							//	N.B. if you sent this option to true,
+							//	and you publish a message on a topic with
+							//	no peers listening on that topic,
+							//	no other network node will ever receive the message.
+							//
+							allowPublishToZeroTopicPeers: true,
 
 							//	Do not throw `PublishError.Duplicate` if publishing duplicate messages
 							ignoreDuplicatePublishError: true,
@@ -191,7 +267,7 @@ export class P2pService
 							//	boolean identifying whether PX is enabled;
 							//	this should be enabled in bootstrappers and other
 							//	well-connected/trusted nodes (defaults to false).
-							doPX : false,
+							doPX : true,
 
 							//	boolean identifying if we want to sign outgoing messages or not (default: true)
 							signMessages : true,
@@ -202,9 +278,10 @@ export class P2pService
 					},
 					connectionProtector : preSharedKey( {
 						//	private network
-						psk : createP2pOptions.swarmKey
+						psk : p2pNodeOptions.swarmKey
 					}),
 					connectionManager: {
+						inboundConnectionThreshold: Infinity,
 						maxConnections: 1024,
 						minConnections: 2
 					},
@@ -216,15 +293,14 @@ export class P2pService
 				};
 
 				/**
-				 * @typedef NodeServices {object}
-				 * @property relay {import('libp2p/circuit-relay').CircuitRelayService}
-				 * @property identify {import('libp2p/identify').IdentifyService}
-				 * @property pubsub {import('@libp2p/interface/pubsub').PubSub<PubSubEvents>}
+				 *	@typedef P2pService {object}
+				 *	@property node {Libp2p}
 				 */
+
 				/**
-				 * @type {import('@libp2p/interface').Libp2p<NodeServices>}
+				 *	@type {import('@libp2p/interface').Libp2p<P2pService>}
 				 */
-				this.node = await createLibp2p( /** @type {Libp2pOptions<NodeServices>} */ options );
+				this.node = await createLibp2p( /** @type {Libp2pOptions<P2pService>} */ options );
 
 				//	...
 				this.node.addEventListener( 'peer:connect',  ( /** @type {{ detail: any; }} */ evt ) =>
@@ -247,7 +323,7 @@ export class P2pService
 				this.node.services.pubsub.addEventListener( 'message', ( /** @type {{ detail: { type: any; topic: any; from: any; }; }} */ evt ) =>
 				{
 					//console.log( `||||||||||-||||||||||-> Pub/Sub received message :`, evt );
-					this.handleNodePeerMessage( this.node, createP2pOptions.callbackMessage, evt );
+					this.handleNodePeerMessage( this.node, p2pNodeOptions.callbackMessage, evt );
 				});
 				this.node.services.pubsub.addEventListener( 'gossipsub:heartbeat', ( _evt ) =>
 				{
