@@ -1,6 +1,6 @@
-import _ from 'lodash';
 import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-discovery';
 import { VaP2pRelayOptions } from "../validators/VaP2pRelayOptions.js";
+import _ from "lodash";
 
 /**
  *	@typedef  P2pRelayOptions {object}
@@ -88,6 +88,16 @@ export class P2pRelayOptionsBuilder
 	setPort( /** @type {number} */ value )
 	{
 		this.port = value;
+
+		if ( _.isNumber( value ) &&
+			Array.isArray( this.announceAddresses ) )
+		{
+			for ( let i = 0; i < this.announceAddresses.length; i ++ )
+			{
+				this.announceAddresses[ i ] = this.announceAddresses[ i ].replace( /{P2P_PORT}/g, value.toString() );
+			}
+		}
+
 		return this;
 	}
 
@@ -96,6 +106,14 @@ export class P2pRelayOptionsBuilder
 	 */
 	setAnnounceAddresses( /** @type {string[]} */ value )
 	{
+		if ( Array.isArray( value ) )
+		{
+			for ( let i = 0; i < value.length; i ++ )
+			{
+				value[ i ] = value[ i ].replace( /{P2P_PORT}/g, this.port.toString() );
+			}
+		}
+
 		this.announceAddresses = value;
 		return this;
 	}

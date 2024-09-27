@@ -16,7 +16,7 @@ class Publisher extends BasePubSub
 		{
 			try
 			{
-				process.env.P2P_ANNOUNCES = undefined;
+				//process.env.P2P_ANNOUNCES = undefined;
 				await super.start( ( param ) =>
 				{
 					if ( _.isObject( param.body ) &&

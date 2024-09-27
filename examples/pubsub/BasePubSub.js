@@ -6,6 +6,7 @@ import { bootstrappers } from "../bootstrappers.js";
 import { PeerUtil } from "../../src/utils/PeerUtil.js";
 import { ProcessUtil } from "debeem-utils";
 
+import "deyml/config";
 
 /**
  * 	@class
