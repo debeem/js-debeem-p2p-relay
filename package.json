@@ -59,8 +59,8 @@
 		"@libp2p/webtransport": "^4.1.9",
 		"chalk": "^5.3.0",
 		"debeem-lib": "^1.0.2",
-		"debeem-queue": "^1.0.23",
-		"debeem-utils": "^1.0.75",
+		"debeem-queue": "^1.0.25",
+		"debeem-utils": "^1.0.77",
 		"deyml": "^1.0.3",
 		"libp2p": "^1.9.4",
 		"lodash": "^4.17.21",
@@ -72,12 +72,12 @@
 		"uint8arrays": "^5.1.0"
 	},
 	"devDependencies": {
-		"@types/node": "^22.5.4",
+		"@babel/preset-env": "^7.21.5",
+		"@types/lodash": "^4.14.196",
+		"@types/node": "^22.7.5",
 		"@types/readable-stream": "^4.0.15",
-		"ts-jest": "^29.2.5",
-		"ts-loader": "^9.5.1",
-		"ts-node": "^10.9.2",
-		"typescript": "^5.5.4"
+		"mocha": "^10.7.3",
+		"supertest": "^6.3.3"
 	},
 	"contributors": [
 		"DeBeem, Team."

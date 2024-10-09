@@ -1,6 +1,6 @@
-import { peerIdFromPeerId } from "@libp2p/peer-id";
-import "deyml/config";
+import { peerIdFromString } from "@libp2p/peer-id";
 import _ from "lodash";
+import "deyml/config";
 
 /**
  * 	@class
@@ -19,11 +19,23 @@ export class PeerUtil
 	{
 		try
 		{
-			const _newPeerId = peerIdFromPeerId( peerId );
-			return true;
+			if ( ! peerId )
+			{
+				return false;
+			}
+
+			//	...
+			const newPeerIdObj = peerIdFromString( peerId.toString() );
+			const srcString = peerId.toString();
+			const newString = newPeerIdObj.toString();
+			// console.log( `srcString :`, srcString );
+			// console.log( `newString :`, newString );
+			//
+			return srcString === newString;
 		}
 		catch ( err )
 		{
+			console.error( `err111111 :`, err );
 		}
 
 		return false;

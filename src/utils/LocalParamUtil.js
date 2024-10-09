@@ -1,6 +1,13 @@
 import { ProcessUtil } from "debeem-utils";
-import debeem_queue from "debeem-queue";
-const { DeRedisOptions } = debeem_queue;
+//import { DeRedisOptions } from "debeem-queue";
+// import debeem_queue from "debeem-queue";
+// const { DeRedisOptions } = debeem_queue;
+
+
+/**
+ * 	@typedef {import('debeem-queue').DeRedisOptions} DeRedisOptions
+ */
+
 
 /**
  * 	@class
