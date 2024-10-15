@@ -11,7 +11,7 @@ export class VaP2pNodeOptions
         static validateP2pNodeOptions( /** @type {any} */
                                        p2pNodeOptions )
         {
-                if ( ! p2pNodeOptions )
+                if ( ! p2pNodeOptions || ! _.isObject( p2pNodeOptions ) || _.isEmpty( p2pNodeOptions ) )
                 {
                         return `invalid p2pNodeOptions`;
                 }
@@ -48,7 +48,7 @@ export class VaP2pNodeOptions
                 {
                         return `invalid p2pNodeOptions.callbackMessage`;
                 }
-                if ( ! _.isNumber( p2pNodeOptions.transports ) )
+                if ( ! _.isNumber( p2pNodeOptions.transports ) || p2pNodeOptions.transports <= 0 )
                 {
                         return `invalid p2pNodeOptions.transports`;
                 }

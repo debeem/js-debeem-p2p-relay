@@ -11,7 +11,7 @@ export class VaP2pRelayOptions
         static validateP2pRelayOptions( /** @type {P2pRelayOptions} */
                                        p2pRelayOptions )
         {
-                if ( ! p2pRelayOptions )
+                if ( ! p2pRelayOptions || ! _.isObject( p2pRelayOptions ) || _.isEmpty( p2pRelayOptions ) )
                 {
                         return `invalid p2pRelayOptions`;
                 }
@@ -20,17 +20,16 @@ export class VaP2pRelayOptions
                 //	if the user does not specify the correct peerIdFilename,
                 //	the default peerIdFilename will be used
                 //
-                if ( p2pRelayOptions.peerIdFilename )
+                if ( _.isString( p2pRelayOptions.peerIdFilename ) )
                 {
-                        if ( ! _.isString( p2pRelayOptions.peerIdFilename ) ||
-                                _.isEmpty( p2pRelayOptions.peerIdFilename ) )
+                        if ( _.isEmpty( p2pRelayOptions.peerIdFilename ) )
                         {
                                 return `invalid p2pRelayOptions.peerIdFilename`;
                         }
                 }
-                if ( p2pRelayOptions.swarmKeyFilename )
+                if ( _.isString( p2pRelayOptions.swarmKeyFilename ) )
                 {
-                        if ( ! _.isString( p2pRelayOptions.swarmKeyFilename ) || _.isEmpty( p2pRelayOptions.swarmKeyFilename ) )
+                        if ( _.isEmpty( p2pRelayOptions.swarmKeyFilename ) )
                         {
                                 return `invalid p2pRelayOptions.swarmKeyFilename`;
                         }

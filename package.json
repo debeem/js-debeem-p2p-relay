@@ -9,7 +9,8 @@
 		"pub": "node examples/pubsub/Publisher.js --p2p_port 61601 --peer_id ./examples/deploy/pub.peerId",
 		"sub": "node examples/pubsub/Subscriber.js",
 		"sub1": "node examples/pubsub/Subscriber.js --p2p_port 61610 --peer_id ./examples/deploy/sub1.peerId",
-		"sub2": "node examples/pubsub/Subscriber.js --p2p_port 61611 --peer_id ./examples/deploy/sub2.peerId"
+		"sub2": "node examples/pubsub/Subscriber.js --p2p_port 61611 --peer_id ./examples/deploy/sub2.peerId",
+		"test" : "mocha"
 	},
 	"type": "module",
 	"files": [

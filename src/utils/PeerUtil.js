@@ -47,7 +47,7 @@ export class PeerUtil
 	 */
 	static getListenAddresses( port )
 	{
-		port = port || 9911;
+		port = ( _.isNumber( port ) && port > 0 && port < 65536 ) ? port : 9911;
 		//let listenAddresses = [ '/ip4/127.0.0.1/tcp/10010/ws', '/ip4/127.0.0.1/tcp/10000' ]
 		// let listenAddresses = [ '/ip4/0.0.0.0/tcp/10000/ws' ]
 		// const argvAddr = argv.listenMultiaddrs || argv.lm

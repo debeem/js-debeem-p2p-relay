@@ -22,7 +22,6 @@ import { circuitRelayTransport, circuitRelayServer } from '@libp2p/circuit-relay
 import { identify, identifyPush } from '@libp2p/identify'
 
 import { LogUtil, ProcessUtil } from 'debeem-utils';
-import { PeerUtil } from "../utils/PeerUtil.js";
 
 import { logger } from "@libp2p/logger";
 import _ from "lodash";

@@ -1,8 +1,5 @@
-import _ from 'lodash';
-import { PeerUtil } from "../utils/PeerUtil.js";
 import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-discovery';
 import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
-import { circuitRelayTransport } from "@libp2p/circuit-relay-v2";
 
 /**
  * 	@typedef {import('./CallbackMessage.js')} CallbackMessage

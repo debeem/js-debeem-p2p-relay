@@ -1,5 +1,5 @@
 import { PeerIdService, PeerIdStorageService, SwarmKeyService, SwarmKeyStorageService } from "debeem-lib";
-import { LogUtil } from "debeem-utils";
+import { LogUtil, TestUtil } from "debeem-utils";
 
 /**
  * 	@class
@@ -7,38 +7,41 @@ import { LogUtil } from "debeem-utils";
 export class PrepareUtil
 {
 	/**
-	 * 	@param peerIdFilename	{string|null} The full path of the file that saves the peerId
+	 * 	@param peerIdFullFilePath	{string|null} The full path of the file that saves the peerId
 	 *	@returns {Promise<PeerId|null>}
 	 */
-	static async preparePeerId( peerIdFilename = null )
+	static async preparePeerId( peerIdFullFilePath = null )
 	{
 		return new Promise( async ( resolve, reject ) =>
 		{
 			try
 			{
 				const peerIdStorageService = new PeerIdStorageService();
-				const filename = peerIdStorageService.getSafeFilename( peerIdFilename );
-				let peerIdObject = await PeerIdService.loadPeerId( filename );
-				if ( null === peerIdObject )
+				const fullFilePath = peerIdStorageService.getSafeFilename( peerIdFullFilePath );
+				let rawPeerIdObject = await PeerIdService.loadPeerId( fullFilePath );
+				if ( null === rawPeerIdObject )
 				{
 					LogUtil.say( `try to generate a new peerId` );
-					peerIdObject = await PeerIdService.flushPeerId( filename );
+					rawPeerIdObject = await PeerIdService.flushPeerId( fullFilePath );
 				}
-				if ( null === peerIdObject )
+				if ( null === rawPeerIdObject )
 				{
 					return reject( `failed to load peerId` );
 				}
 
-				//	...
-				const storagePeerId = peerIdStorageService.storagePeerIdFromRaw( peerIdObject );
+				//	convert raw peerId to storage peerId
+				const storagePeerId = peerIdStorageService.storagePeerIdFromRaw( rawPeerIdObject );
 				if ( null === storagePeerId )
 				{
 					return reject( `failed to load peerId from raw` );
 				}
 
 				//	...
-				LogUtil.say( `peerId: ${ storagePeerId.id }, from: ${ filename }` );
-				resolve( peerIdObject );
+				if ( ! TestUtil.isTestEnv() )
+				{
+					LogUtil.say( `peerId: ${ storagePeerId.id }, from: ${ fullFilePath }` );
+				}
+				resolve( rawPeerIdObject );
 			}
 			catch ( err )
 			{
@@ -48,28 +51,31 @@ export class PrepareUtil
 	}
 
 	/**
-	 * 	@param	swarmKeyFilename	{string|null}	The full path of the file that saves the swarmKey
+	 * 	@param	swarmKeyFullFilePath	{string|null}	The full path of the file that saves the swarmKey
 	 *	@returns {Promise<Uint8Array|null>}
 	 */
-	static async prepareSwarmKey( swarmKeyFilename = null )
+	static async prepareSwarmKey( swarmKeyFullFilePath = null )
 	{
 		return new Promise( async ( resolve, reject ) =>
 		{
 			try
 			{
 				const swarmKeyStorageService = new SwarmKeyStorageService();
-				const filename = swarmKeyStorageService.getSafeFilename( swarmKeyFilename );
+				const fullFilePath = swarmKeyStorageService.getSafeFilename( swarmKeyFullFilePath );
 				let swarmKey;
 				let swarmKeyObject;
 
-				swarmKey = await SwarmKeyService.loadSwarmKey( filename );
+				swarmKey = await SwarmKeyService.loadSwarmKey( fullFilePath );
 				swarmKeyObject = swarmKeyStorageService.swarmKeyToObject( swarmKey );
 				if ( null === swarmKeyObject )
 				{
 					return reject( `failed to load swarmKey` );
 				}
 
-				LogUtil.say( `swarm key: ${ swarmKeyObject.key }, from: ${ filename }` );
+				if ( ! TestUtil.isTestEnv() )
+				{
+					LogUtil.say( `swarm key: ${ swarmKeyObject.key }, from: ${ fullFilePath }` );
+				}
 				if ( ! swarmKeyStorageService.isValidSwarmKeyObject( swarmKeyObject ) )
 				{
 					return reject( `invalid swarmKeyObject` );
