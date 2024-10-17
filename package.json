@@ -10,7 +10,7 @@
 		"sub": "node examples/pubsub/Subscriber.js",
 		"sub1": "node examples/pubsub/Subscriber.js --p2p_port 61610 --peer_id ./examples/deploy/sub1.peerId",
 		"sub2": "node examples/pubsub/Subscriber.js --p2p_port 61611 --peer_id ./examples/deploy/sub2.peerId",
-		"test" : "mocha"
+		"test": "mocha"
 	},
 	"type": "module",
 	"files": [
@@ -75,7 +75,7 @@
 	"devDependencies": {
 		"@babel/preset-env": "^7.21.5",
 		"@types/lodash": "^4.14.196",
-		"@types/node": "^22.7.5",
+		"@types/node": "^22.7.6",
 		"@types/readable-stream": "^4.0.15",
 		"mocha": "^10.7.3",
 		"supertest": "^6.3.3"

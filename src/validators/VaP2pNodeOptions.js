@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { PeerUtil } from "../utils/PeerUtil.js";
+import { isValidP2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 
 
 export class VaP2pNodeOptions
@@ -48,7 +49,7 @@ export class VaP2pNodeOptions
                 {
                         return `invalid p2pNodeOptions.callbackMessage`;
                 }
-                if ( ! _.isNumber( p2pNodeOptions.transports ) || p2pNodeOptions.transports <= 0 )
+                if ( ! isValidP2pNodeTransports( p2pNodeOptions.transports ) )
                 {
                         return `invalid p2pNodeOptions.transports`;
                 }
