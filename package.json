@@ -63,6 +63,7 @@
 		"debeem-queue": "^1.0.26",
 		"debeem-utils": "^1.0.77",
 		"deyml": "^1.0.3",
+		"level": "^8.0.1",
 		"libp2p": "^1.9.4",
 		"lodash": "^4.17.21",
 		"menoetius": "^0.0.3",

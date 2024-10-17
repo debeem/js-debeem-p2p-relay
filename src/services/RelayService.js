@@ -13,6 +13,19 @@ const log = logger( 'debeem:RelayService' )
 
 //enable( 'debeem:RelayService' );
 
+/**
+ *      load config from .yml
+ */
+import "deyml/config";
+import { PersistentLogger } from "../plog/PersistentLogger.js";
+
+/**
+ *      whether to plog when PublishResult is empty
+ *      @type {boolean}
+ */
+export const logOnEmptyPublishResult = ProcessUtil.getParamBooleanValue( `LOG_ON_EMPTY_PUBLISH_RESULT`, false );
+
+
 
 /**
  *    @class
@@ -62,6 +75,11 @@ export class RelayService
         lastAllPeers = undefined;
         lastAllSubscribers = undefined;
         lastAllTopics = undefined;
+
+        /**
+         *      @type {PersistentLogger}
+         */
+        persistentLogger = new PersistentLogger();
 
 
         constructor()
@@ -209,13 +227,13 @@ export class RelayService
                                 return;
                         }
 
-                        // console.log( `>>>>>>>>>>>>>>>>>>>> Received a message: >>>>>>>>>>>>>>>>>>>>` );
-                        // console.log( `- type :`, param.type );
-                        // console.log( `- topic :`, param.topic );
-                        // console.log( `- msgId :`, param.msgId );
-                        // console.log( `- from :`, param.from ? param.from.toString() : null );
-                        // console.log( `- sequenceNumber :`, param.sequenceNumber );
-                        // console.log( `- body :`, param.body );
+                        // console.plog( `>>>>>>>>>>>>>>>>>>>> Received a message: >>>>>>>>>>>>>>>>>>>>` );
+                        // console.plog( `- type :`, param.type );
+                        // console.plog( `- topic :`, param.topic );
+                        // console.plog( `- msgId :`, param.msgId );
+                        // console.plog( `- from :`, param.from ? param.from.toString() : null );
+                        // console.plog( `- sequenceNumber :`, param.sequenceNumber );
+                        // console.plog( `- body :`, param.body );
 
                         //	callback
                         this.subscribes[ param.topic ]( param );
@@ -377,6 +395,19 @@ export class RelayService
                                 {
                                         await this.startPubSub();
                                         const pubData = new TextEncoder().encode( pubString );
+
+                                        /**
+                                         *      async publish (topic: TopicStr, data: Uint8Array, opts?: PublishOpts): Promise<PublishResult>
+                                         *      {
+                                         *              ... ...
+                                         *              return {
+                                         *                      recipients: Array.from(tosend.values()).map((str) => peerIdFromString(str))
+                                         *              }
+                                         *      }
+                                         *
+                                         *      @typedef {import('@libp2p/interface').PublishResult} PublishResult
+                                         *      @type {Promise<PublishResult>}
+                                         */
                                         publishResult = await this.p2pNode.services.pubsub.publish( topic, pubData );
 
                                         //
@@ -385,14 +416,20 @@ export class RelayService
                                         //
                                         await pEvent( this.p2pNode.services.pubsub, 'gossipsub:heartbeat' );
 
-                                        // if ( Array.isArray( publishResult ) && publishResult.length > 0 )
-                                        // {
-                                        // 	console.log( `|||||||| publishResult : ${ pubString }, ${ JSON.stringify( publishResult ) }`,  );
-                                        // }
-                                        // else
-                                        // {
-                                        // 	console.log( `${ chalk.bgGreen( '|||||||| publishResult' ) } : ${ pubString }, ${ JSON.stringify( publishResult ) }`,  );
-                                        // }
+                                        /**
+                                         *      log on publish result is empty
+                                         */
+                                        if ( logOnEmptyPublishResult )
+                                        {
+                                                if ( publishResult &&
+                                                        Array.isArray( publishResult.recipients ) &&
+                                                        0 === publishResult.recipients.length )
+                                                {
+                                                        this.persistentLogger.insertLog(
+                                                                { timestamp : 0, value : {} }
+                                                        ).then( _res =>{} );
+                                                }
+                                        }
                                 }
                                 catch ( errPublishing )
                                 {

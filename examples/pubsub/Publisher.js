@@ -56,7 +56,7 @@ class Publisher extends BasePubSub
 			// const report = this.relayService.checkHealth( this.subTopic );
 			// if ( null !== report.errors )
 			// {
-			// 	console.log( `[${ new Date().toLocaleString() }] ${ chalk.bgRed( 'Network error' ) } : `, report );
+			// 	console.plog( `[${ new Date().toLocaleString() }] ${ chalk.bgRed( 'Network error' ) } : `, report );
 			// 	return false;
 			// }
 			//
