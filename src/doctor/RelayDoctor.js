@@ -64,6 +64,11 @@ export class RelayDoctor
          */
         setPublishFunction( pfnPublish )
         {
+                if ( ! _.isFunction( pfnPublish ) )
+                {
+                        throw new Error( `${ this.constructor.name }.setPublishFunction :: invalid pfnPublish` );
+                }
+
                 this.pfnPublish = pfnPublish;
         }
 
