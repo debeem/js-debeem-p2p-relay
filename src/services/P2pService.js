@@ -37,7 +37,7 @@ const log = logger( 'debeem:P2pService' )
 //enable( 'debeem:P2pService' );
 
 
-//	enable plog in debeem:gossipsub
+//	enable doctor in debeem:gossipsub
 //enable( 'libp2p:gossipsub' );
 
 
@@ -321,12 +321,12 @@ export class P2pService
 				//this.node.services.pubsub.subscribe( this.getSyncTopic() );
 				this.node.services.pubsub.addEventListener( 'message', ( /** @type {{ detail: { type: any; topic: any; from: any; }; }} */ evt ) =>
 				{
-					//console.plog( `||||||||||-||||||||||-> Pub/Sub received message :`, evt );
+					//console.doctor( `||||||||||-||||||||||-> Pub/Sub received message :`, evt );
 					this.handleNodePeerMessage( this.node, p2pNodeOptions.callbackMessage, evt );
 				});
 				this.node.services.pubsub.addEventListener( 'gossipsub:heartbeat', ( _evt ) =>
 				{
-					//console.plog( chalk.red( `|||||| [${ new Date().toLocaleString() }] |||||| -> received gossipsub:heartbeat :` ), _evt );
+					//console.doctor( chalk.red( `|||||| [${ new Date().toLocaleString() }] |||||| -> received gossipsub:heartbeat :` ), _evt );
 				});
 				this.node.services.pubsub.addEventListener( 'subscription-change', async ( evt ) =>
 				{
@@ -402,7 +402,7 @@ export class P2pService
 		try
 		{
 			const peerInfo = evt.detail;
-			//console.plog( `peerInfo : `, peerInfo );
+			//console.doctor( `peerInfo : `, peerInfo );
 			//node.dial( peerInfo.id );
 			console.log( `))) Discovered: ${ peerInfo.id.toString() }` )
 
@@ -541,13 +541,13 @@ export class P2pService
 
 			//	...
 			//const allSubscribers = node.services.pubsub.getSubscribers( this.getSyncTopic() );
-			// console.plog( `allSubscribers : `, allSubscribers );
+			// console.doctor( `allSubscribers : `, allSubscribers );
 			//const allTopics = node.services.pubsub.getTopics();
-			//console.plog( `allTopics : `, allTopics );
+			//console.doctor( `allTopics : `, allTopics );
 
 			//	...
 			//const allPeers = this.node.services.pubsub.getPeers();
-			// console.plog( `allPeers : `, allPeers );
+			// console.doctor( `allPeers : `, allPeers );
 
 			//
 			//	Validates the given message. The signature will be checked for authenticity.
@@ -568,7 +568,7 @@ export class P2pService
 			// if ( msgIdUInt8Arr instanceof Uint8Array )
 			// {
 			// 	const msgId = uint8ArrayToString( msgIdUInt8Arr );
-			// 	console.plog( `msgId : ${ msgIdUInt8Arr }` );
+			// 	console.doctor( `msgId : ${ msgIdUInt8Arr }` );
 			// }
 
 			//
@@ -590,7 +590,7 @@ export class P2pService
 				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: recSequenceNumber :`, recSequenceNumber );
 			}
 
-			//console.plog( `will call callbackMessage` );
+			//console.doctor( `will call callbackMessage` );
 			if ( _.isFunction( callbackMessage ) )
 			{
 				callbackMessage({
@@ -618,10 +618,10 @@ export class P2pService
 			// 	recObject = JSON.parse( recData.trim() );
 			// }
 			// const signature = uint8ArrayToString( evt.detail.signature );
-			// console.plog( `received [${ recSequence }] \n- from: ${ recFrom }\n- type: ${ recType }\n- topic ${ recTopic }` );
-			// console.plog( `- data: ${ recData }` );
-			// //console.plog( `- signature: ${ signature }` );
-			// console.plog( `\n` );
+			// console.doctor( `received [${ recSequence }] \n- from: ${ recFrom }\n- type: ${ recType }\n- topic ${ recTopic }` );
+			// console.doctor( `- data: ${ recData }` );
+			// //console.doctor( `- signature: ${ signature }` );
+			// console.doctor( `\n` );
 		}
 		catch ( err )
 		{

@@ -8,5 +8,5 @@ P2P_BOOTSTRAPPERS:
   - /ip4/8.140.247.159/tcp/8011/p2p/QmUNaruC7WfHNLeFNH2CUPBWLVPzjDg5shj2zs9nGaajSL
 
 
-#   whether to log when PublishResult is empty
-LOG_ON_EMPTY_PUBLISH_RESULT: true
+#   whether to diagnose the publishing result; log publishData
+DIAGNOSE_PUBLISHING_RESULT: true

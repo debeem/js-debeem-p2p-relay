@@ -17,13 +17,13 @@ const log = logger( 'debeem:RelayService' )
  *      load config from .yml
  */
 import "deyml/config";
-import { PersistentLogger } from "../plog/PersistentLogger.js";
+import { RelayDoctor } from "../doctor/RelayDoctor.js";
 
 /**
- *      whether to plog when PublishResult is empty
+ *      whether to diagnose the publishing result; log publishData
  *      @type {boolean}
  */
-export const logOnEmptyPublishResult = ProcessUtil.getParamBooleanValue( `LOG_ON_EMPTY_PUBLISH_RESULT`, false );
+export const diagnosePublishingResult = ProcessUtil.getParamBooleanValue( `DIAGNOSE_PUBLISHING_RESULT`, false );
 
 
 
@@ -77,9 +77,9 @@ export class RelayService
         lastAllTopics = undefined;
 
         /**
-         *      @type {PersistentLogger}
+         *      @type {RelayDoctor}
          */
-        persistentLogger = new PersistentLogger();
+        relayDoctor = new RelayDoctor();
 
 
         constructor()
@@ -173,6 +173,9 @@ export class RelayService
                                 //	begin heartbeat
                                 this._beginBusinessPing();
 
+                                //      begin doctor
+                                this.relayDoctor.start();
+
                                 //	setup stop
                                 process.on( 'SIGTERM', this.stop );
                                 process.on( 'SIGINT', this.stop );
@@ -227,13 +230,13 @@ export class RelayService
                                 return;
                         }
 
-                        // console.plog( `>>>>>>>>>>>>>>>>>>>> Received a message: >>>>>>>>>>>>>>>>>>>>` );
-                        // console.plog( `- type :`, param.type );
-                        // console.plog( `- topic :`, param.topic );
-                        // console.plog( `- msgId :`, param.msgId );
-                        // console.plog( `- from :`, param.from ? param.from.toString() : null );
-                        // console.plog( `- sequenceNumber :`, param.sequenceNumber );
-                        // console.plog( `- body :`, param.body );
+                        // console.doctor( `>>>>>>>>>>>>>>>>>>>> Received a message: >>>>>>>>>>>>>>>>>>>>` );
+                        // console.doctor( `- type :`, param.type );
+                        // console.doctor( `- topic :`, param.topic );
+                        // console.doctor( `- msgId :`, param.msgId );
+                        // console.doctor( `- from :`, param.from ? param.from.toString() : null );
+                        // console.doctor( `- sequenceNumber :`, param.sequenceNumber );
+                        // console.doctor( `- body :`, param.body );
 
                         //	callback
                         this.subscribes[ param.topic ]( param );
@@ -417,18 +420,16 @@ export class RelayService
                                         await pEvent( this.p2pNode.services.pubsub, 'gossipsub:heartbeat' );
 
                                         /**
-                                         *      log on publish result is empty
+                                         *      whether to diagnose the publishing result, log publishData
                                          */
-                                        if ( logOnEmptyPublishResult )
+                                        if ( diagnosePublishingResult )
                                         {
-                                                if ( publishResult &&
-                                                        Array.isArray( publishResult.recipients ) &&
-                                                        0 === publishResult.recipients.length )
-                                                {
-                                                        this.persistentLogger.insertLog(
-                                                                { timestamp : 0, value : {} }
-                                                        ).then( _res =>{} );
-                                                }
+                                                const publishData = {
+                                                        topic : topic,
+                                                        pubString : pubString,
+                                                };
+                                                this.relayDoctor.setPublishFunction( this.p2pNode.services.pubsub.publish );
+                                                this.relayDoctor.diagnosePublishResult( publishResult, publishData ).then( _res =>{} ).catch( _err => {} );
                                         }
                                 }
                                 catch ( errPublishing )

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { PersistentLogger } from "../../src/plog/PersistentLogger.js";
+import { PersistentLogger } from "../../src/doctor/PersistentLogger.js";
 import { TestUtil } from "debeem-utils";
 import _ from "lodash";
 
@@ -17,21 +17,21 @@ describe( 'PersistentLogger', function ()
 
         describe( 'methods', function ()
         {
-                it( '#getLogKey', async () =>
+                it( '#calcLogKey', async () =>
                 {
                         const persistentLogger = new PersistentLogger();
-                        assert.strictEqual( persistentLogger.getLogKey( undefined ), null );
-                        assert.strictEqual( persistentLogger.getLogKey( -1 ), null );
-                        assert.strictEqual( persistentLogger.getLogKey( 0 ), null );
+                        assert.strictEqual( persistentLogger.calcLogKey( undefined ), null );
+                        assert.strictEqual( persistentLogger.calcLogKey( -1 ), null );
+                        assert.strictEqual( persistentLogger.calcLogKey( 0 ), null );
                 } );
 
-                it( '#insertLog : unexpected', async () =>
+                it( '#insert : unexpected', async () =>
                 {
                         const persistentLogger = new PersistentLogger();
 
                         try
                         {
-                                await persistentLogger.insertLog( { timestamp : 0, value : 0 } );
+                                await persistentLogger.insert( { timestamp : 0, value : 0 } );
                         }
                         catch ( err )
                         {
@@ -40,7 +40,7 @@ describe( 'PersistentLogger', function ()
 
                         try
                         {
-                                await persistentLogger.insertLog( { timestamp : 0, value : `` } );
+                                await persistentLogger.insert( { timestamp : 0, value : `` } );
                         }
                         catch ( err )
                         {
@@ -49,7 +49,7 @@ describe( 'PersistentLogger', function ()
 
                         try
                         {
-                                await persistentLogger.insertLog( { timestamp : 0, value : {} } );
+                                await persistentLogger.insert( { timestamp : 0, value : {} } );
                         }
                         catch ( err )
                         {
@@ -66,7 +66,7 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type {boolean}
                          */
-                        const result = await persistentLogger.insertLog( { timestamp : 0, value : { ts : Date.now() } } );
+                        const result = await persistentLogger.insert( { timestamp : 0, value : { ts : Date.now() } } );
                         assert.strictEqual( result, true );
 
                         const size = await persistentLogger.size();
@@ -83,7 +83,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insertLog( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -149,7 +149,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insertLog( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -199,7 +199,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insertLog( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -273,7 +273,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insertLog( newElement );
+                                const result = await persistentLogger.insert( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -315,7 +315,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insertLog( newElement );
+                                const result = await persistentLogger.insert( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...

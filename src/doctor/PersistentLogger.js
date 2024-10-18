@@ -8,6 +8,21 @@ import { VaPersistentLogElement } from "../validators/VaPersistentLogElement.js"
  *        @property value {string}
  */
 
+/**
+ *      check if the input value is a valid PersistentLogElement
+ *
+ *      @param element          {any}
+ *      @returns {boolean}
+ */
+export function isValidPersistentLogElement( element )
+{
+        return _.isObject( element ) &&
+                _.isNumber( element.timestamp ) && element.timestamp > 0 &&
+                ( _.isObject( element.value ) || _.isString( element.value ) ) && ! _.isEmpty( element.value );
+}
+
+
+
 
 /**
  *        @class
@@ -28,11 +43,11 @@ export class PersistentLogger extends LevelDbManager
         }
 
         /**
-         *        get log key
+         *        calculate log key
          *        @param timestamp        {number}
          *        @returns {string|null}
          */
-        getLogKey( timestamp )
+        calcLogKey( timestamp )
         {
                 if ( ! _.isNumber( timestamp ) || timestamp <= 0 )
                 {
@@ -72,7 +87,7 @@ export class PersistentLogger extends LevelDbManager
          *        @param element        {PersistentLogElement}
          *        @returns {Promise< boolean >}
          */
-        insertLog( element )
+        insert( element )
         {
                 return new Promise( async (
                         resolve,
@@ -84,17 +99,17 @@ export class PersistentLogger extends LevelDbManager
                                 const errorElement = VaPersistentLogElement.validateLogElement( element );
                                 if ( null !== errorElement )
                                 {
-                                        return reject( `${ this.constructor.name }.insertLog :: ${ errorElement }` );
+                                        return reject( `${ this.constructor.name }.insert :: ${ errorElement }` );
                                 }
                                 if ( ! _.isNumber( element.timestamp ) || element.timestamp <= 0 )
                                 {
                                         element.timestamp = Date.now();
                                 }
 
-                                const logKey = this.getLogKey( element.timestamp );
-                                if ( ! _.isString( logKey ) )
+                                const logKey = this.calcLogKey( element.timestamp );
+                                if ( ! _.isString( logKey ) || _.isEmpty( logKey ) )
                                 {
-                                        return reject( `${ this.constructor.name }.insertLog :: failed to calculate logKey` );
+                                        return reject( `${ this.constructor.name }.insert :: failed to calculate logKey` );
                                 }
 
                                 /**
@@ -112,6 +127,88 @@ export class PersistentLogger extends LevelDbManager
                                 reject( err );
                         }
                 } );
+        }
+
+        /**
+         * 	remove and return an element from the beginning of the list
+         *
+         *	@returns { Promise< PersistentLogElement | null > }
+         */
+        dequeue()
+        {
+                return new Promise( async ( resolve, reject ) =>
+                {
+                        try
+                        {
+                                //      query the first element from the beginning of the list
+                                const frontElement = await this.front();
+                                if ( frontElement )
+                                {
+                                        /**
+                                         *      @type {string|null}
+                                         */
+                                        const logKey = this.calcLogKey( frontElement.timestamp );
+                                        if ( ! _.isString( logKey ) || _.isEmpty( logKey ) )
+                                        {
+                                                return reject( `${ this.constructor.name }.dequeue :: failed to calculate logKey` );
+                                        }
+
+                                        //      ...
+                                        await LevelDbManager.getDB().del( logKey );
+
+                                        //      ...
+                                        return resolve( frontElement );
+                                }
+
+                                resolve( null );
+                        }
+                        catch ( err )
+                        {
+                                reject( err );
+                        }
+                });
+        }
+
+        /**
+         *      delete an element
+         *
+         *      @param elementOrTimestamp       { PersistentLogElement | number }
+         *      @returns {Promise<boolean>}
+         */
+        delete( elementOrTimestamp )
+        {
+                return new Promise( async ( resolve, reject ) =>
+                {
+                        try
+                        {
+                                let logKey = null;
+                                if ( _.isNumber( elementOrTimestamp ) && elementOrTimestamp > 0 )
+                                {
+                                        logKey = this.calcLogKey( elementOrTimestamp );
+                                }
+                                else if ( isValidPersistentLogElement( elementOrTimestamp ) )
+                                {
+                                        logKey = this.calcLogKey( elementOrTimestamp.timestamp );
+                                }
+                                else
+                                {
+                                        return reject( `${ this.constructor.name }.delete :: invalid elementOrTimestamp` );
+                                }
+
+                                if ( ! _.isString( logKey ) || _.isEmpty( logKey ) )
+                                {
+                                        return reject( `${ this.constructor.name }.delete :: failed to calculate logKey` );
+                                }
+
+                                //      ...
+                                await LevelDbManager.getDB().del( logKey );
+                                resolve( true );
+                        }
+                        catch ( err )
+                        {
+                                reject( err );
+                        }
+                });
         }
 
         /**
@@ -146,7 +243,7 @@ export class PersistentLogger extends LevelDbManager
                                 /**
                                  *      @type {string|null}
                                  */
-                                const logKey = this.getLogKey( startTimestamp );
+                                const logKey = this.calcLogKey( startTimestamp );
 
                                 /**
                                  *      @type {{lt: string, limit: number, reverse: boolean, gt: (string|null)}}
@@ -201,7 +298,7 @@ export class PersistentLogger extends LevelDbManager
                         /**
                          *      @type {string|null}
                          */
-                        const logKey = this.getLogKey( startTimestamp );
+                        const logKey = this.calcLogKey( startTimestamp );
 
                         /**
                          *      @type {{lt: string, limit: number, reverse: boolean, gt: (string|null)}}

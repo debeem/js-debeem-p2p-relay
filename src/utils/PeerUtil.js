@@ -28,8 +28,8 @@ export class PeerUtil
 			const newPeerIdObj = peerIdFromString( peerId.toString() );
 			const srcString = peerId.toString();
 			const newString = newPeerIdObj.toString();
-			// console.plog( `srcString :`, srcString );
-			// console.plog( `newString :`, newString );
+			// console.doctor( `srcString :`, srcString );
+			// console.doctor( `newString :`, newString );
 			//
 			return srcString === newString;
 		}

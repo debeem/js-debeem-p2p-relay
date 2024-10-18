@@ -59,20 +59,20 @@ export class BasePubSub
 
 				//	...
 				await TimerUtil.waitForDelay( 1000 );
-				//console.plog( `${ chalk.cyan( 'Waiting for network connection to be ready ...' ) } ` );
+				//console.doctor( `${ chalk.cyan( 'Waiting for network connection to be ready ...' ) } ` );
 				this.relayService.printNetworkInfo();
 				// await TimerUtil.waitUntilCondition( () =>
 				// {
 				// 	const report = this.relayService.checkHealth( this.subTopic );
 				// 	if ( report.errors )
 				// 	{
-				// 		//console.plog( `[${ new Date().toLocaleString() }] ${ chalk.bgYellow( 'WAITING : ' ) }`, report );
+				// 		//console.doctor( `[${ new Date().toLocaleString() }] ${ chalk.bgYellow( 'WAITING : ' ) }`, report );
 				// 		return false;
 				// 	}
 				//
 				// 	return true;
 				// }, 1000 );
-				// console.plog( `${ chalk.bgGreen( 'Network connection is ready :)' ) } ` );
+				// console.doctor( `${ chalk.bgGreen( 'Network connection is ready :)' ) } ` );
 
 				//	...
 				resolve();
