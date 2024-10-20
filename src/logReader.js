@@ -1,4 +1,4 @@
-import { LogConsoleReader } from "./doctor/LogConsoleReader.js";
+import { LogConsoleReader } from "./doctor/LevelDb/LogConsoleReader.js";
 
 
 // Instantiate the LogConsoleReader class and start reading logs

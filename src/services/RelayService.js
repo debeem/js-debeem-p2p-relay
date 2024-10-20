@@ -90,6 +90,7 @@ export class RelayService
                 }
 
                 //	...
+                this.relayServiceThis = this;
                 this.p2pService = new P2pService();
         }
 
@@ -174,7 +175,11 @@ export class RelayService
                                 this._beginBusinessPing();
 
                                 //      begin doctor
-                                this.relayDoctor.start();
+                                setTimeout( () =>
+                                {
+                                        this.relayDoctor.setPublishFunction( this.relayServiceThis );
+                                        this.relayDoctor.start();
+                                }, 5 * 1000 );
 
                                 //	setup stop
                                 process.on( 'SIGTERM', this.stop );
@@ -426,9 +431,8 @@ export class RelayService
                                         {
                                                 const publishData = {
                                                         topic : topic,
-                                                        pubString : pubString,
+                                                        data : data,
                                                 };
-                                                this.relayDoctor.setPublishFunction( this.p2pNode.services.pubsub.publish );
                                                 this.relayDoctor.diagnosePublishResult( publishResult, publishData ).then( _res =>{} ).catch( _err => {} );
                                         }
                                 }

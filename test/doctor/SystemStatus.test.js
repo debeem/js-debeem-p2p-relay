@@ -1,5 +1,5 @@
 import assert from "assert";
-import { SystemStatus } from "../../src/doctor/SystemStatus.js";
+import { SystemStatus } from "../../src/index.js";
 
 
 /**

@@ -1,13 +1,24 @@
 import readline from 'readline';
 import { LevelDbManager } from "./LevelDbManager.js";
 import _ from "lodash";
+import { LogRecorder } from "./LogRecorder.js";
 
 /**
  *      @class
  */
 export class LogConsoleReader extends LevelDbManager
 {
+        /**
+         *      @type {any}
+         */
         iterator = null;
+
+        /**
+         *      log recorder
+         *      @type {LogRecorder}
+         */
+        logRecorder = new LogRecorder();
+
 
         //      Open the iterator to read records in ascending order by key (time)
         async openIterator()
@@ -67,12 +78,15 @@ export class LogConsoleReader extends LevelDbManager
                 //      Open the LevelDB iterator
                 await this.openIterator();
 
+                const totalSize = await this.logRecorder.size();
+                let serialNumber = 1;
+
                 rl.on( 'line', async ( input ) =>
                 {
                         const log = await this.readNextLog();
                         if ( log )
                         {
-                                console.log( `:: Key: \`${ log.key }\`:` );
+                                console.log( `(${ serialNumber ++ }/${ totalSize }) :: Key: \`${ log.key }\`:` );
                                 console.log( JSON.stringify( log.value, null, 8 ) );
                         }
                         else

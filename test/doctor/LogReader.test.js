@@ -1,7 +1,6 @@
 import assert from "assert";
-import { LogRecorder } from "../../src/doctor/LogRecorder.js";
 import { TestUtil } from "debeem-utils";
-import _ from "lodash";
+import { LogRecorder } from "../../src/doctor/logger/impls/LevelLog/LogRecorder.js";
 
 
 /**

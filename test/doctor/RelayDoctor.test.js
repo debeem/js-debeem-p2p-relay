@@ -1,7 +1,5 @@
 import assert from "assert";
-import { SystemStatus } from "../../src/doctor/SystemStatus.js";
-import { RelayDoctor } from "../../src/doctor/RelayDoctor.js";
-import _ from "lodash";
+import { RelayDoctor } from "../../src/index.js";
 import { TestUtil } from "debeem-utils";
 
 
@@ -55,7 +53,7 @@ describe( 'RelayDoctor', function ()
                                         const publishResult = { recipients : [] };
                                         const publishData = {
                                                 topic : `testTopic`,
-                                                pubString : JSON.stringify( { hello : `world`, ts : Date.now() } )
+                                                data : { hello : `world`, ts : Date.now() }
                                         };
                                         relayDoctor.setPublishFunction( publishFunc );
                                         await relayDoctor.diagnosePublishResult( publishResult, publishData );

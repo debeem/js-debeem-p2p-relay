@@ -1,6 +1,6 @@
 import { LevelDbManager } from "./LevelDbManager.js";
 import _ from "lodash";
-import { VaPersistentLogElement } from "../validators/VaPersistentLogElement.js";
+import { VaPersistentLogElement } from "../../../../validators/VaPersistentLogElement.js";
 
 /**
  *        @typedef  PersistentLogElement {object}

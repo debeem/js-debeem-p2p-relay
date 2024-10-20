@@ -10,3 +10,11 @@ P2P_BOOTSTRAPPERS:
 
 #   whether to diagnose the publishing result; log publishData
 DIAGNOSE_PUBLISHING_RESULT: true
+
+
+# cache
+REDIS_PORT: 6379
+REDIS_HOST: host.docker.internal
+REDIS_USERNAME:
+REDIS_PASSWORD:
+REDIS_DB: 0

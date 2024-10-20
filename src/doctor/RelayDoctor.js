@@ -1,4 +1,4 @@
-import { isValidPersistentLogElement, LogRecorder } from "./LogRecorder.js";
+import { isValidPersistentLogElement, LogRecorder } from "./logger/impls/LevelLog/LogRecorder.js";
 import { SystemStatus } from "./SystemStatus.js";
 import _ from "lodash";
 
@@ -9,8 +9,9 @@ import _ from "lodash";
 /**
  *        @typedef  RelayDoctorPublishData {object}
  *        @property topic       {string}
- *        @property pubString   {string}
+ *        @property data        {any}
  */
+
 
 /**
  *      check if the input value is a valid RelayDoctorPublishData
@@ -22,8 +23,14 @@ export function isValidRelayDoctorPublishData( data )
 {
         return _.isObject( data ) &&
                 _.isString( data.topic ) && ! _.isEmpty( data.topic ) &&
-                _.isString( data.pubString ) && ! _.isEmpty( data.pubString );
+                _.isObject( data.data ) && ! _.isEmpty( data.data );
 }
+
+/**
+ *      default value of the maximum queue length
+ *      @type {number}
+ */
+export const defaultMaxQueueSize = 9999;
 
 
 /**
@@ -34,7 +41,13 @@ export class RelayDoctor
         /**
          *      @type {NodeJS.Timeout}
          */
-        interval = undefined;
+        intervalRepublish = undefined;
+
+        /**
+         *      Indicate whether the functions within the interval is working
+         *      @type {boolean}
+         */
+        intervalRepublishWorking = false;
 
         /**
          *      @type {LogRecorder}
@@ -47,14 +60,20 @@ export class RelayDoctor
         pfnPublish = undefined;
 
         /**
-         *      Indicate whether the functions within the interval is working
-         *      @type {boolean}
+         *      the maximum queue length
+         *      @type {number}
          */
-        intervalWorking = false;
+        maxQueueSize = defaultMaxQueueSize;
 
 
-        constructor()
+        constructor( {
+                             maxQueueSize = defaultMaxQueueSize
+                     } = {} )
         {
+                if ( _.isNumber( maxQueueSize ) && maxQueueSize > 0 )
+                {
+                        this.maxQueueSize = maxQueueSize;
+                }
         }
 
         /**
@@ -64,10 +83,10 @@ export class RelayDoctor
          */
         setPublishFunction( pfnPublish )
         {
-                if ( ! _.isFunction( pfnPublish ) )
-                {
-                        throw new Error( `${ this.constructor.name }.setPublishFunction :: invalid pfnPublish` );
-                }
+                // if ( ! _.isFunction( pfnPublish ) )
+                // {
+                //         throw new Error( `${ this.constructor.name }.setPublishFunction :: invalid pfnPublish` );
+                // }
 
                 this.pfnPublish = pfnPublish;
         }
@@ -88,25 +107,25 @@ export class RelayDoctor
                 //      ...
                 this.stop();
 
-                //      ...
-                this.interval = setInterval( async () =>
+                //      republish
+                this.intervalRepublish = setInterval( async () =>
                 {
-                        if ( this.intervalWorking )
+                        if ( this.intervalRepublishWorking )
                         {
                                 return;
                         }
 
                         //      ...
-                        this.intervalWorking = true;
+                        this.intervalRepublishWorking = true;
                         try
                         {
-                                await this.#intervalThread();
+                                await this.#intervalRepublishThread();
                         }
                         catch ( err )
                         {
                                 console.error( err );
                         }
-                        this.intervalWorking = false;
+                        this.intervalRepublishWorking = false;
 
                 }, intervalInMicroseconds );
         }
@@ -116,20 +135,24 @@ export class RelayDoctor
          */
         stop()
         {
-                if ( this.interval )
+                if ( this.intervalRepublish )
                 {
-                        clearInterval( this.interval );
-                        this.interval = undefined;
+                        clearInterval( this.intervalRepublish );
+                        this.intervalRepublish = undefined;
                 }
         }
 
+
         /**
-         *      worker thread of the interval
+         *      republishing worker thread of the interval
          *      @returns {Promise<boolean>}
          */
-        #intervalThread()
+        #intervalRepublishThread()
         {
-                return new Promise( async ( resolve, reject ) =>
+                return new Promise( async (
+                        resolve,
+                        reject
+                ) =>
                 {
                         try
                         {
@@ -137,10 +160,10 @@ export class RelayDoctor
                                 {
                                         return reject( `${ this.constructor.name }.intervalThread :: system is busy` );
                                 }
-                                if ( ! this.pfnPublish || ! _.isFunction( this.pfnPublish ) )
-                                {
-                                        return reject( `${ this.constructor.name }.intervalThread :: invalid function this.pfnPublish` );
-                                }
+                                // if ( ! this.pfnPublish || ! _.isFunction( this.pfnPublish ) )
+                                // {
+                                //         return reject( `${ this.constructor.name }.intervalThread :: invalid function this.pfnPublish` );
+                                // }
 
                                 /**
                                  *      @type { PersistentLogElement | null }
@@ -171,9 +194,30 @@ export class RelayDoctor
                                         return reject( `${ this.constructor.name }.intervalThread :: invalid loaded publishData` );
                                 }
 
-                                //      ...
-                                const pubByteData = new TextEncoder().encode( publishData.pubString );
-                                await this.pfnPublish( publishData.topic, pubByteData );
+                                //
+                                //      republish
+                                //
+                                const republishResult = await this.pfnPublish.publish( publishData.topic, publishData.data );
+                                console.log( `///***///***/// republishResult :`, republishResult );
+
+                                //
+                                //      delete the element
+                                //
+                                await this.logRecorder.delete( frontElement );
+
+                                //
+                                //      purge
+                                //      if the queue exceeds the limit, the earliest data will be deleted
+                                //
+                                const size = this.logRecorder.size();
+                                if ( size > this.maxQueueSize )
+                                {
+                                        const toBePurgedKeys = await this.logRecorder.getPaginatedKeys( 0, size - this.maxQueueSize );
+                                        for ( const key of toBePurgedKeys )
+                                        {
+                                                await this.logRecorder.delete( key );
+                                        }
+                                }
 
                                 //      ...
                                 resolve( true );
@@ -182,7 +226,29 @@ export class RelayDoctor
                         {
                                 reject( err );
                         }
-                });
+                } );
+        }
+
+        /**
+         *      purging worker thread of the interval
+         *      @returns {Promise<boolean>}
+         */
+        #intervalPurgeThread()
+        {
+                return new Promise( async (
+                        resolve,
+                        reject
+                ) =>
+                {
+                        try
+                        {
+
+                        }
+                        catch ( err )
+                        {
+                                reject( err );
+                        }
+                } );
         }
 
 
@@ -193,9 +259,15 @@ export class RelayDoctor
          *      @param publishData      {RelayDoctorPublishData}
          *      @returns {Promise<boolean>}
          */
-        diagnosePublishResult( publishResult, publishData )
+        diagnosePublishResult(
+                publishResult,
+                publishData
+        )
         {
-                return new Promise( async ( resolve, reject ) =>
+                return new Promise( async (
+                        resolve,
+                        reject
+                ) =>
                 {
                         try
                         {
@@ -221,6 +293,6 @@ export class RelayDoctor
                         {
                                 reject( err );
                         }
-                });
+                } );
         }
 }
