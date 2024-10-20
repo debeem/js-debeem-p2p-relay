@@ -27,21 +27,8 @@ export function isValidPersistentLogElement( element )
 /**
  *        @class
  */
-export class PersistentLogger extends LevelDbManager
+export class LogRecorder extends LevelDbManager
 {
-        /**
-         *        @type {string}
-         */
-        prefix = `empty_recipients_log`;
-
-        /**
-         *      @returns {string}
-         */
-        getPrefix()
-        {
-                return this.prefix;
-        }
-
         /**
          *        calculate log key
          *        @param timestamp        {number}
@@ -54,7 +41,7 @@ export class PersistentLogger extends LevelDbManager
                         return null;
                 }
 
-                return `${ this.prefix }::${ timestamp }`;
+                return `${ this.getLogPrefix() }::${ timestamp }`;
         }
 
         /**
@@ -63,12 +50,12 @@ export class PersistentLogger extends LevelDbManager
          */
         extractTimestampFromLogKey( logKey )
         {
-                if ( ! _.isString( logKey ) || ! logKey.includes( this.prefix ) )
+                if ( ! _.isString( logKey ) || ! logKey.includes( this.getLogPrefix() ) )
                 {
                         return 0;
                 }
 
-                const regex = new RegExp( `${ this.prefix }::(\\d+)` );
+                const regex = new RegExp( `${ this.getLogPrefix() }::(\\d+)` );
                 const match = logKey.match( regex );
                 if ( match && match[ 1 ] )
                 {
@@ -119,7 +106,7 @@ export class PersistentLogger extends LevelDbManager
                                 logData = element;
 
                                 //	...
-                                await LevelDbManager.getDB().put( logKey, logData );
+                                await this.getDB().put( logKey, logData );
                                 resolve( true );
                         }
                         catch ( err )
@@ -154,7 +141,7 @@ export class PersistentLogger extends LevelDbManager
                                         }
 
                                         //      ...
-                                        await LevelDbManager.getDB().del( logKey );
+                                        await this.getDB().del( logKey );
 
                                         //      ...
                                         return resolve( frontElement );
@@ -201,7 +188,7 @@ export class PersistentLogger extends LevelDbManager
                                 }
 
                                 //      ...
-                                await LevelDbManager.getDB().del( logKey );
+                                await this.getDB().del( logKey );
                                 resolve( true );
                         }
                         catch ( err )
@@ -249,8 +236,8 @@ export class PersistentLogger extends LevelDbManager
                                  *      @type {{lt: string, limit: number, reverse: boolean, gt: (string|null)}}
                                  */
                                 const options = {
-                                        gt : _.isString( logKey ) ? logKey : this.prefix,
-                                        lt : `${ this.prefix }\xFF`,
+                                        gt : _.isString( logKey ) ? logKey : this.getLogPrefix(),
+                                        lt : `${ this.getLogPrefix() }\xFF`,
                                         limit : limit,
                                         reverse : false,        //      by ascending order
                                 };
@@ -258,7 +245,7 @@ export class PersistentLogger extends LevelDbManager
                                 /**
                                  *      @type {Array< string >}
                                  */
-                                const keys = await LevelDbManager.getDB().keys( options ).all();
+                                const keys = await this.getDB().keys( options ).all();
                                 resolve( Array.isArray( keys ) ? keys : [] );
                         }
                         catch ( err )
@@ -304,8 +291,8 @@ export class PersistentLogger extends LevelDbManager
                          *      @type {{lt: string, limit: number, reverse: boolean, gt: (string|null)}}
                          */
                         const options = {
-                                gt : _.isString( logKey ) ? logKey : this.prefix,
-                                lt : `${ this.prefix }\xFF`,
+                                gt : _.isString( logKey ) ? logKey : this.getLogPrefix(),
+                                lt : `${ this.getLogPrefix() }\xFF`,
                                 limit : limit,
                                 reverse : false,        //      by ascending order
                         };
@@ -313,7 +300,7 @@ export class PersistentLogger extends LevelDbManager
                         /**
                          *      @type {Array< PersistentLogElement >}
                          */
-                        const values = await LevelDbManager.getDB().values( options ).all();
+                        const values = await this.getDB().values( options ).all();
                         resolve( Array.isArray( values ) ? values : [] );
                 } );
         }
@@ -386,14 +373,14 @@ export class PersistentLogger extends LevelDbManager
                         try
                         {
                                 const options = {
-                                        gte : this.prefix,
-                                        lt : `${ this.prefix }\xFF`
+                                        gte : this.getLogPrefix(),
+                                        lt : `${ this.getLogPrefix() }\xFF`
                                 };
 
                                 /**
                                  *      @type {Array< string >}
                                  */
-                                const keys = await LevelDbManager.getDB().keys( options ).all();
+                                const keys = await this.getDB().keys( options ).all();
 
                                 //      ...
                                 resolve( Array.isArray( keys ) ? keys.length : 0 );
@@ -419,10 +406,10 @@ export class PersistentLogger extends LevelDbManager
                         try
                         {
                                 const options = {
-                                        gte : this.prefix,
-                                        lt : `${ this.prefix }\xFF`
+                                        gte : this.getLogPrefix(),
+                                        lt : `${ this.getLogPrefix() }\xFF`
                                 };
-                                await LevelDbManager.getDB().clear( options );
+                                await this.getDB().clear( options );
                                 resolve();
                         }
                         catch ( err )

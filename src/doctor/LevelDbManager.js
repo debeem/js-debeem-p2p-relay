@@ -20,13 +20,26 @@ export class LevelDbManager
 	/**
 	 *	@type {string}
 	 */
-	static dbName = `levelDb`;
+	dbName = `levelDb`;
 
 	/**
 	 *	@type { DatabaseOptions<string, string> }
 	 */
-	static dbOptions = { valueEncoding : 'json' };
+	dbOptions = { valueEncoding : 'json' };
 
+	/**
+	 *        @type {string}
+	 */
+	logPrefix = `empty_recipients_log`;
+
+
+	/**
+	 *      @returns {string}
+	 */
+	getLogPrefix()
+	{
+		return this.logPrefix;
+	}
 
 	/**
 	 * 	initialize database
@@ -35,15 +48,17 @@ export class LevelDbManager
 	 * 	@param [dbName]	 	{string}
 	 * 	@returns {void}
 	 */
-	static initDB( dbName)
+	initDB( dbName)
 	{
-		if ( _.isString( dbName ) && ! _.isEmpty( dbName ) )
+		if ( _.isString( dbName ) &&
+			! _.isEmpty( dbName ) &&
+			this.dbName !== dbName )
 		{
 			this.dbName = _.cloneDeep( dbName );
 		}
-		if ( ! this.db )
+		if ( ! LevelDbManager.db )
 		{
-			this.db = new Level( this.dbName, this.dbOptions );
+			LevelDbManager.db = new Level( this.dbName, this.dbOptions );
 		}
 	}
 
@@ -51,7 +66,7 @@ export class LevelDbManager
 	 * 	get database name
 	 * 	@returns {string}
 	 */
-	static getDbName()
+	getDbName()
 	{
 		return this.dbName;
 	}
@@ -61,12 +76,12 @@ export class LevelDbManager
 	 * 	@param [dbName]		{string}
 	 * 	@returns {Level}
 	 */
-	static getDB( dbName )
+	getDB( dbName )
 	{
-		if ( ! this.db )
+		if ( ! LevelDbManager.db )
 		{
 			this.initDB( dbName );
 		}
-		return this.db;
+		return LevelDbManager.db;
 	}
 }

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { PersistentLogger } from "../../src/doctor/PersistentLogger.js";
+import { LogRecorder } from "../../src/doctor/LogRecorder.js";
 import { TestUtil } from "debeem-utils";
 import _ from "lodash";
 
@@ -7,7 +7,7 @@ import _ from "lodash";
 /**
  *        unit test
  */
-describe( 'PersistentLogger', function ()
+describe( 'LogRecorder', function ()
 {
         before(function()
         {
@@ -19,19 +19,19 @@ describe( 'PersistentLogger', function ()
         {
                 it( '#calcLogKey', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        assert.strictEqual( persistentLogger.calcLogKey( undefined ), null );
-                        assert.strictEqual( persistentLogger.calcLogKey( -1 ), null );
-                        assert.strictEqual( persistentLogger.calcLogKey( 0 ), null );
+                        const logRecorder = new LogRecorder();
+                        assert.strictEqual( logRecorder.calcLogKey( undefined ), null );
+                        assert.strictEqual( logRecorder.calcLogKey( -1 ), null );
+                        assert.strictEqual( logRecorder.calcLogKey( 0 ), null );
                 } );
 
                 it( '#insert : unexpected', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
+                        const logRecorder = new LogRecorder();
 
                         try
                         {
-                                await persistentLogger.insert( { timestamp : 0, value : 0 } );
+                                await logRecorder.insert( { timestamp : 0, value : 0 } );
                         }
                         catch ( err )
                         {
@@ -40,7 +40,7 @@ describe( 'PersistentLogger', function ()
 
                         try
                         {
-                                await persistentLogger.insert( { timestamp : 0, value : `` } );
+                                await logRecorder.insert( { timestamp : 0, value : `` } );
                         }
                         catch ( err )
                         {
@@ -49,7 +49,7 @@ describe( 'PersistentLogger', function ()
 
                         try
                         {
-                                await persistentLogger.insert( { timestamp : 0, value : {} } );
+                                await logRecorder.insert( { timestamp : 0, value : {} } );
                         }
                         catch ( err )
                         {
@@ -60,30 +60,30 @@ describe( 'PersistentLogger', function ()
 
                 it( '#insertLog : case 1', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
 
                         /**
                          *      @type {boolean}
                          */
-                        const result = await persistentLogger.insert( { timestamp : 0, value : { ts : Date.now() } } );
+                        const result = await logRecorder.insert( { timestamp : 0, value : { ts : Date.now() } } );
                         assert.strictEqual( result, true );
 
-                        const size = await persistentLogger.size();
+                        const size = await logRecorder.size();
                         assert.strictEqual( size, 1 );
                 } );
 
                 it( '#insertLog : case 2', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
 
                         for ( let i = 0; i < 10; i ++ )
                         {
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -93,14 +93,16 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type {number}
                          */
-                        const size = await persistentLogger.size();
+                        const size = await logRecorder.size();
+                        //console.log( `size :`, size );
+                        //size : 10
                         assert.strictEqual( size, 10 );
 
 
                         /**
                          *      @type { Array<string> }
                          */
-                        const keys = await persistentLogger.getPaginatedKeys( 0, 10 );
+                        const keys = await logRecorder.getPaginatedKeys( 0, 10 );
                         //console.log( `keys :`, keys );
                         //      keys : [
                         //   'empty_recipients_log::1729182220398',
@@ -121,7 +123,7 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type { Array<PersistentLogElement> }
                          */
-                        const values = await persistentLogger.getPaginatedElements( 0, 10 );
+                        const values = await logRecorder.getPaginatedElements( 0, 10 );
                         //console.log( 'values :', values );
                         //      values : [
                         //   { timestamp: 1729181984965, value: { index: 0, ts: 1729181984965 } },
@@ -141,15 +143,15 @@ describe( 'PersistentLogger', function ()
 
                 it( '#getPaginatedKeys', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
 
                         for ( let i = 0; i < 30; i ++ )
                         {
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -159,7 +161,7 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type {number}
                          */
-                        const size = await persistentLogger.size();
+                        const size = await logRecorder.size();
                         assert.strictEqual( size, 30 );
 
                         let loadedKeys = [];
@@ -169,14 +171,14 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type { Array<string> }
                                  */
-                                const keys = await persistentLogger.getPaginatedKeys( lastTimestamp, 10 );
+                                const keys = await logRecorder.getPaginatedKeys( lastTimestamp, 10 );
                                 if ( ! Array.isArray( keys ) || 0 === keys.length )
                                 {
                                         break;
                                 }
 
                                 //      ...
-                                lastTimestamp = persistentLogger.extractTimestampFromLogKey( keys[ keys.length - 1 ] );
+                                lastTimestamp = logRecorder.extractTimestampFromLogKey( keys[ keys.length - 1 ] );
                                 if ( ! _.isNumber( lastTimestamp ) || lastTimestamp <= 0 )
                                 {
                                         break;
@@ -191,15 +193,15 @@ describe( 'PersistentLogger', function ()
 
                 it( '#getPaginatedElements', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
 
                         for ( let i = 0; i < 30; i ++ )
                         {
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -209,7 +211,7 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type {number}
                          */
-                        const size = await persistentLogger.size();
+                        const size = await logRecorder.size();
                         assert.strictEqual( size, 30 );
 
                         /**
@@ -227,7 +229,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type { Array<PersistentLogElement> }
                                  */
-                                const elements = await persistentLogger.getPaginatedElements( lastTimestamp, 10 );
+                                const elements = await logRecorder.getPaginatedElements( lastTimestamp, 10 );
                                 if ( ! Array.isArray( elements ) || 0 === elements.length )
                                 {
                                         break;
@@ -254,8 +256,8 @@ describe( 'PersistentLogger', function ()
 
                 it( '#front', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
 
                         /**
                          *      @type { PersistentLogElement }
@@ -273,7 +275,7 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insert( newElement );
+                                const result = await logRecorder.insert( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -283,14 +285,14 @@ describe( 'PersistentLogger', function ()
                         /**
                          *      @type {number}
                          */
-                        const size = await persistentLogger.size();
+                        const size = await logRecorder.size();
                         assert.strictEqual( size, 10 );
 
 
                         /**
                          *      @type { PersistentLogElement }
                          */
-                        const frontElement = await persistentLogger.front();
+                        const frontElement = await logRecorder.front();
                         //console.log( `frontElement :`, frontElement );
                         //      frontElement :
                         //      { timestamp: 1729183983853, value: { index: 0, ts: 1729183983853 } }
@@ -304,9 +306,9 @@ describe( 'PersistentLogger', function ()
 
                 it( '#isEmpty', async () =>
                 {
-                        const persistentLogger = new PersistentLogger();
-                        await persistentLogger.clear();
-                        assert.deepStrictEqual( await persistentLogger.isEmpty(), true );
+                        const logRecorder = new LogRecorder();
+                        await logRecorder.clear();
+                        assert.deepStrictEqual( await logRecorder.isEmpty(), true );
 
                         for ( let i = 0; i < 10; i ++ )
                         {
@@ -315,14 +317,14 @@ describe( 'PersistentLogger', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await persistentLogger.insert( newElement );
+                                const result = await logRecorder.insert( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...
                                 await TestUtil.sleep( 10 );
                         }
 
-                        assert.deepStrictEqual( await persistentLogger.isEmpty(), false );
+                        assert.deepStrictEqual( await logRecorder.isEmpty(), false );
                 } );
         } );
 } );

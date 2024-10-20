@@ -1,4 +1,4 @@
-import { isValidPersistentLogElement, PersistentLogger } from "./PersistentLogger.js";
+import { isValidPersistentLogElement, LogRecorder } from "./LogRecorder.js";
 import { SystemStatus } from "./SystemStatus.js";
 import _ from "lodash";
 
@@ -37,9 +37,9 @@ export class RelayDoctor
         interval = undefined;
 
         /**
-         *      @type {PersistentLogger}
+         *      @type {LogRecorder}
          */
-        persistentLogger = new PersistentLogger();
+        logRecorder = new LogRecorder();
 
         /**
          *      @typedef {import('@libp2p/interface').PubSub.publish} publish
@@ -145,7 +145,7 @@ export class RelayDoctor
                                 /**
                                  *      @type { PersistentLogElement | null }
                                  */
-                                const frontElement = await this.persistentLogger.front();
+                                const frontElement = await this.logRecorder.front();
                                 if ( null === frontElement )
                                 {
                                         //      no element
@@ -215,7 +215,7 @@ export class RelayDoctor
                                 }
 
                                 const logElement = { timestamp : 0, value : publishData };
-                                resolve( await this.persistentLogger.insert( logElement ) );
+                                resolve( await this.logRecorder.insert( logElement ) );
                         }
                         catch ( err )
                         {

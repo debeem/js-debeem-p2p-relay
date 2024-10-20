@@ -28,7 +28,7 @@ describe( 'RelayDoctor', function ()
                                 try
                                 {
                                         const relayDoctor = new RelayDoctor();
-                                        await relayDoctor.persistentLogger.clear();
+                                        await relayDoctor.logRecorder.clear();
 
                                         let diagnosedTopic = ``;
                                         let diagnosedPubString = ``;
