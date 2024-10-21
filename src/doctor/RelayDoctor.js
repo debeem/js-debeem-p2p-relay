@@ -1,6 +1,7 @@
-import { isValidPersistentLogElement, LogRecorder } from "./logger/impls/LevelLog/LogRecorder.js";
 import { SystemStatus } from "./SystemStatus.js";
 import _ from "lodash";
+import { RedisLogRecorder } from "./logger/impls/RedisLog/RedisLogRecorder.js";
+import { isValidDiagnosticLogElement } from "./logger/AbstractLogRecorder.js";
 
 /**
  *      @typedef {import('@libp2p/interface').PublishResult} PublishResult
@@ -39,6 +40,12 @@ export const defaultMaxQueueSize = 9999;
 export class RelayDoctor
 {
         /**
+         * 	peerId string
+         *	@type {string}
+         */
+        peerId = ``;
+
+        /**
          *      @type {NodeJS.Timeout}
          */
         intervalRepublish = undefined;
@@ -50,14 +57,14 @@ export class RelayDoctor
         intervalRepublishWorking = false;
 
         /**
-         *      @type {LogRecorder}
+         *      @type {RedisLogRecorder}
          */
-        logRecorder = new LogRecorder();
+        logRecorder = undefined;
 
         /**
          *      @typedef {import('@libp2p/interface').PubSub.publish} publish
          */
-        pfnPublish = undefined;
+        pClsRelayService = undefined;
 
         /**
          *      the maximum queue length
@@ -67,28 +74,43 @@ export class RelayDoctor
 
 
         constructor( {
-                             maxQueueSize = defaultMaxQueueSize
+                             maxQueueSize = defaultMaxQueueSize,
+                             peerId = ``
                      } = {} )
         {
                 if ( _.isNumber( maxQueueSize ) && maxQueueSize > 0 )
                 {
                         this.maxQueueSize = maxQueueSize;
                 }
+
+                /**
+                 *      copy peerId
+                 */
+                if ( ! _.isString( peerId ) || _.isEmpty( peerId.trim() ) )
+                {
+                        throw new Error( `${ this.constructor.name }.constructor :: invalid peerId` );
+                }
+                this.peerId = peerId.trim().toLowerCase();
+
+                /**
+                 *      create log recorder
+                 *      @type {RedisLogRecorder}
+                 */
+                this.logRecorder = new RedisLogRecorder( { peerId : peerId } );
         }
 
         /**
-         *      set publish function
-         *      @param pfnPublish    {publish}
+         *      set RelayService class instance address
+         *      @param pClsRelayService    {publish}
          *      @returns {void}
          */
-        setPublishFunction( pfnPublish )
+        setRelayServiceAddress( pClsRelayService )
         {
-                // if ( ! _.isFunction( pfnPublish ) )
-                // {
-                //         throw new Error( `${ this.constructor.name }.setPublishFunction :: invalid pfnPublish` );
-                // }
-
-                this.pfnPublish = pfnPublish;
+                if ( ! pClsRelayService )
+                {
+                        throw new Error( `${ this.constructor.name }.setRelayServiceAddress :: invalid pClsRelayService` );
+                }
+                this.pClsRelayService = pClsRelayService;
         }
 
         /**
@@ -166,7 +188,7 @@ export class RelayDoctor
                                 // }
 
                                 /**
-                                 *      @type { PersistentLogElement | null }
+                                 *      @type { DiagnosticLogElement | null }
                                  */
                                 const frontElement = await this.logRecorder.front();
                                 if ( null === frontElement )
@@ -174,7 +196,7 @@ export class RelayDoctor
                                         //      no element
                                         return resolve( true );
                                 }
-                                if ( ! isValidPersistentLogElement( frontElement ) )
+                                if ( ! isValidDiagnosticLogElement( frontElement ) )
                                 {
                                         return reject( `${ this.constructor.name }.intervalThread :: invalid loaded frontElement` );
                                 }
@@ -197,7 +219,7 @@ export class RelayDoctor
                                 //
                                 //      republish
                                 //
-                                const republishResult = await this.pfnPublish.publish( publishData.topic, publishData.data );
+                                const republishResult = await this.pClsRelayService.publish( publishData.topic, publishData.data );
                                 console.log( `///***///***/// republishResult :`, republishResult );
 
                                 //
@@ -228,29 +250,6 @@ export class RelayDoctor
                         }
                 } );
         }
-
-        /**
-         *      purging worker thread of the interval
-         *      @returns {Promise<boolean>}
-         */
-        #intervalPurgeThread()
-        {
-                return new Promise( async (
-                        resolve,
-                        reject
-                ) =>
-                {
-                        try
-                        {
-
-                        }
-                        catch ( err )
-                        {
-                                reject( err );
-                        }
-                } );
-        }
-
 
         /**
          *      check publish result
@@ -287,7 +286,7 @@ export class RelayDoctor
                                 }
 
                                 const logElement = { timestamp : 0, value : publishData };
-                                resolve( await this.logRecorder.insert( logElement ) );
+                                resolve( await this.logRecorder.enqueue( logElement ) );
                         }
                         catch ( err )
                         {

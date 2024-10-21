@@ -1,7 +1,7 @@
-import { LogConsoleReader } from "./doctor/LevelDb/LogConsoleReader.js";
+import { LogConsoleReader } from "./doctor/LevelDb/LevelLogConsoleReader.js";
 
 
-// Instantiate the LogConsoleReader class and start reading logs
+// Instantiate the LevelLogConsoleReader class and start reading logs
 ( async () =>
 {
         const logReader = new LogConsoleReader();

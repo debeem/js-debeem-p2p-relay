@@ -1,13 +1,13 @@
 import assert from "assert";
 import { TestUtil } from "debeem-utils";
 import _ from "lodash";
-import { LogRecorder } from "../../src/doctor/logger/impls/LevelLog/LogRecorder.js";
+import { LevelLogRecorder } from "../../../src/doctor/logger/impls/LevelLog/LevelLogRecorder.js";
 
 
 /**
  *        unit test
  */
-describe( 'LogRecorder', function ()
+describe( 'LevelLogRecorder', function ()
 {
         before(function()
         {
@@ -19,19 +19,19 @@ describe( 'LogRecorder', function ()
         {
                 it( '#calcLogKey', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         assert.strictEqual( logRecorder.calcLogKey( undefined ), null );
                         assert.strictEqual( logRecorder.calcLogKey( -1 ), null );
                         assert.strictEqual( logRecorder.calcLogKey( 0 ), null );
                 } );
 
-                it( '#insert : unexpected', async () =>
+                it( '#enqueue : unexpected', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
 
                         try
                         {
-                                await logRecorder.insert( { timestamp : 0, value : 0 } );
+                                await logRecorder.enqueue( { timestamp : 0, value : 0 } );
                         }
                         catch ( err )
                         {
@@ -40,7 +40,7 @@ describe( 'LogRecorder', function ()
 
                         try
                         {
-                                await logRecorder.insert( { timestamp : 0, value : `` } );
+                                await logRecorder.enqueue( { timestamp : 0, value : `` } );
                         }
                         catch ( err )
                         {
@@ -49,7 +49,7 @@ describe( 'LogRecorder', function ()
 
                         try
                         {
-                                await logRecorder.insert( { timestamp : 0, value : {} } );
+                                await logRecorder.enqueue( { timestamp : 0, value : {} } );
                         }
                         catch ( err )
                         {
@@ -58,24 +58,24 @@ describe( 'LogRecorder', function ()
 
                 } );
 
-                it( '#insertLog : case 1', async () =>
+                it( '#enqueue : case 1', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         /**
                          *      @type {boolean}
                          */
-                        const result = await logRecorder.insert( { timestamp : 0, value : { ts : Date.now() } } );
+                        const result = await logRecorder.enqueue( { timestamp : 0, value : { ts : Date.now() } } );
                         assert.strictEqual( result, true );
 
                         const size = await logRecorder.size();
                         assert.strictEqual( size, 1 );
                 } );
 
-                it( '#insertLog : case 2', async () =>
+                it( '#enqueue : case 2', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         for ( let i = 0; i < 10; i ++ )
@@ -83,7 +83,7 @@ describe( 'LogRecorder', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.enqueue( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -121,7 +121,7 @@ describe( 'LogRecorder', function ()
 
 
                         /**
-                         *      @type { Array<PersistentLogElement> }
+                         *      @type { Array<DiagnosticLogElement> }
                          */
                         const values = await logRecorder.getPaginatedElements( 0, 10 );
                         //console.log( 'values :', values );
@@ -143,7 +143,7 @@ describe( 'LogRecorder', function ()
 
                 it( '#getPaginatedKeys', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         for ( let i = 0; i < 30; i ++ )
@@ -151,7 +151,7 @@ describe( 'LogRecorder', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.enqueue( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -193,7 +193,7 @@ describe( 'LogRecorder', function ()
 
                 it( '#getPaginatedElements', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         for ( let i = 0; i < 30; i ++ )
@@ -201,7 +201,7 @@ describe( 'LogRecorder', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.enqueue( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -215,7 +215,7 @@ describe( 'LogRecorder', function ()
                         assert.strictEqual( size, 30 );
 
                         /**
-                         *      @type { Array<PersistentLogElement> }
+                         *      @type { Array<DiagnosticLogElement> }
                          */
                         let loadedElements = [];
 
@@ -227,7 +227,7 @@ describe( 'LogRecorder', function ()
                         while ( true )
                         {
                                 /**
-                                 *      @type { Array<PersistentLogElement> }
+                                 *      @type { Array<DiagnosticLogElement> }
                                  */
                                 const elements = await logRecorder.getPaginatedElements( lastTimestamp, 10 );
                                 if ( ! Array.isArray( elements ) || 0 === elements.length )
@@ -245,7 +245,7 @@ describe( 'LogRecorder', function ()
                                 }
 
                                 /**
-                                 *      @type { Array<PersistentLogElement> }
+                                 *      @type { Array<DiagnosticLogElement> }
                                  */
                                 loadedElements = loadedElements.concat( elements );
                         }
@@ -256,11 +256,11 @@ describe( 'LogRecorder', function ()
 
                 it( '#front', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         /**
-                         *      @type { PersistentLogElement }
+                         *      @type { DiagnosticLogElement }
                          */
                         let firstElement = undefined;
 
@@ -275,7 +275,7 @@ describe( 'LogRecorder', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( newElement );
+                                const result = await logRecorder.enqueue( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -290,7 +290,7 @@ describe( 'LogRecorder', function ()
 
 
                         /**
-                         *      @type { PersistentLogElement }
+                         *      @type { DiagnosticLogElement }
                          */
                         const frontElement = await logRecorder.front();
                         //console.log( `frontElement :`, frontElement );
@@ -306,7 +306,7 @@ describe( 'LogRecorder', function ()
 
                 it( '#isEmpty', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
                         assert.deepStrictEqual( await logRecorder.isEmpty(), true );
 
@@ -317,7 +317,7 @@ describe( 'LogRecorder', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( newElement );
+                                const result = await logRecorder.enqueue( newElement );
                                 assert.strictEqual( result, true );
 
                                 //      ...

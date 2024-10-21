@@ -1,33 +1,13 @@
 import { LevelDbManager } from "./LevelDbManager.js";
 import _ from "lodash";
-import { VaPersistentLogElement } from "../../../../validators/VaPersistentLogElement.js";
-
-/**
- *        @typedef  PersistentLogElement {object}
- *        @property timestamp {number}
- *        @property value {string}
- */
-
-/**
- *      check if the input value is a valid PersistentLogElement
- *
- *      @param element          {any}
- *      @returns {boolean}
- */
-export function isValidPersistentLogElement( element )
-{
-        return _.isObject( element ) &&
-                _.isNumber( element.timestamp ) && element.timestamp > 0 &&
-                ( _.isObject( element.value ) || _.isString( element.value ) ) && ! _.isEmpty( element.value );
-}
-
-
+import { VaDiagnosticLogElement } from "../../../../validators/VaDiagnosticLogElement.js";
+import { AbstractLogRecorder, isValidDiagnosticLogElement } from "../../AbstractLogRecorder.js";
 
 
 /**
  *        @class
  */
-export class LogRecorder extends LevelDbManager
+export class LevelLogRecorder extends LevelDbManager
 {
         /**
          *        calculate log key
@@ -71,10 +51,10 @@ export class LogRecorder extends LevelDbManager
 
         /**
          *        add new element to database
-         *        @param element        {PersistentLogElement}
+         *        @param element        {DiagnosticLogElement}
          *        @returns {Promise< boolean >}
          */
-        insert( element )
+        enqueue( element )
         {
                 return new Promise( async (
                         resolve,
@@ -83,10 +63,10 @@ export class LogRecorder extends LevelDbManager
                 {
                         try
                         {
-                                const errorElement = VaPersistentLogElement.validateLogElement( element );
+                                const errorElement = VaDiagnosticLogElement.validateLogElement( element );
                                 if ( null !== errorElement )
                                 {
-                                        return reject( `${ this.constructor.name }.insert :: ${ errorElement }` );
+                                        return reject( `${ this.constructor.name }.enqueue :: ${ errorElement }` );
                                 }
                                 if ( ! _.isNumber( element.timestamp ) || element.timestamp <= 0 )
                                 {
@@ -96,7 +76,7 @@ export class LogRecorder extends LevelDbManager
                                 const logKey = this.calcLogKey( element.timestamp );
                                 if ( ! _.isString( logKey ) || _.isEmpty( logKey ) )
                                 {
-                                        return reject( `${ this.constructor.name }.insert :: failed to calculate logKey` );
+                                        return reject( `${ this.constructor.name }.enqueue :: failed to calculate logKey` );
                                 }
 
                                 /**
@@ -119,7 +99,7 @@ export class LogRecorder extends LevelDbManager
         /**
          * 	remove and return an element from the beginning of the list
          *
-         *	@returns { Promise< PersistentLogElement | null > }
+         *	@returns { Promise< DiagnosticLogElement | null > }
          */
         dequeue()
         {
@@ -159,7 +139,7 @@ export class LogRecorder extends LevelDbManager
         /**
          *      delete an element
          *
-         *      @param elementOrTimestamp       { PersistentLogElement | number }
+         *      @param elementOrTimestamp       { DiagnosticLogElement | number }
          *      @returns {Promise<boolean>}
          */
         delete( elementOrTimestamp )
@@ -173,7 +153,7 @@ export class LogRecorder extends LevelDbManager
                                 {
                                         logKey = this.calcLogKey( elementOrTimestamp );
                                 }
-                                else if ( isValidPersistentLogElement( elementOrTimestamp ) )
+                                else if ( isValidDiagnosticLogElement( elementOrTimestamp ) )
                                 {
                                         logKey = this.calcLogKey( elementOrTimestamp.timestamp );
                                 }
@@ -255,13 +235,12 @@ export class LogRecorder extends LevelDbManager
                 } );
         }
 
-
         /**
-         *     get paginated keys
+         *     get paginated elements
          *
          *      @param startTimestamp   {number}
          *      @param limit            {number}
-         *      @returns { Promise< PersistentLogElement > }
+         *      @returns { Promise< Array<DiagnosticLogElement> > }
          */
         getPaginatedElements(
                 startTimestamp,
@@ -298,7 +277,7 @@ export class LogRecorder extends LevelDbManager
                         };
 
                         /**
-                         *      @type {Array< PersistentLogElement >}
+                         *      @type {Array< DiagnosticLogElement >}
                          */
                         const values = await this.getDB().values( options ).all();
                         resolve( Array.isArray( values ) ? values : [] );
@@ -310,7 +289,7 @@ export class LogRecorder extends LevelDbManager
 
         /**
          *      get the first element by ascending order
-         *      @returns { Promise< PersistentLogElement | null > }
+         *      @returns { Promise< DiagnosticLogElement | null > }
          */
         front()
         {
@@ -349,8 +328,7 @@ export class LogRecorder extends LevelDbManager
                 {
                         try
                         {
-                                const keys = await this.getPaginatedKeys( 0, 1 );
-                                resolve( ! ( Array.isArray( keys ) && keys.length > 0 ) );
+                                resolve( 0 === await this.size() );
                         }
                         catch ( err )
                         {

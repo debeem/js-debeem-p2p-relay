@@ -1,12 +1,12 @@
 import assert from "assert";
 import { TestUtil } from "debeem-utils";
-import { LogRecorder } from "../../src/doctor/logger/impls/LevelLog/LogRecorder.js";
+import { LevelLogRecorder } from "../../../src/doctor/logger/impls/LevelLog/LevelLogRecorder.js";
 
 
 /**
  *        unit test
  */
-describe( 'LogReader', function ()
+describe( 'LevelLogConsoleReader', function ()
 {
         before(function()
         {
@@ -18,7 +18,7 @@ describe( 'LogReader', function ()
         {
                 it( 'should create 10 logs', async () =>
                 {
-                        const logRecorder = new LogRecorder();
+                        const logRecorder = new LevelLogRecorder();
                         await logRecorder.clear();
 
                         for ( let i = 0; i < 10; i ++ )
@@ -26,7 +26,7 @@ describe( 'LogReader', function ()
                                 /**
                                  *      @type {boolean}
                                  */
-                                const result = await logRecorder.insert( { timestamp : 0, value : { index : i, ts : Date.now() } } );
+                                const result = await logRecorder.enqueue( { timestamp : 0, value : { index : i, ts : Date.now() } } );
                                 assert.strictEqual( result, true );
 
                                 //      ...
@@ -62,7 +62,7 @@ describe( 'LogReader', function ()
 
 
                         /**
-                         *      @type { Array<PersistentLogElement> }
+                         *      @type { Array<DiagnosticLogElement> }
                          */
                         const values = await logRecorder.getPaginatedElements( 0, 10 );
                         //console.log( 'values :', values );

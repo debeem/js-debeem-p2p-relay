@@ -1,5 +1,5 @@
 import assert from "assert";
-import { RelayDoctor } from "../../src/index.js";
+import { defaultMaxQueueSize, RelayDoctor } from "../../src/index.js";
 import { TestUtil } from "debeem-utils";
 
 
@@ -25,27 +25,22 @@ describe( 'RelayDoctor', function ()
                         {
                                 try
                                 {
-                                        const relayDoctor = new RelayDoctor();
+                                        const drOptions = {
+                                                maxQueueSize : defaultMaxQueueSize,
+                                                peerId : `peerId-123`
+                                        };
+                                        const relayDoctor = new RelayDoctor( drOptions );
                                         await relayDoctor.logRecorder.clear();
 
                                         let diagnosedTopic = ``;
-                                        let diagnosedPubString = ``;
                                         let diagnosedPubJson = ``;
-                                        const publishFunc = ( topic, data ) =>
-                                        {
-                                                diagnosedPubString = new TextDecoder().decode( data );
-                                                try
+                                        const virtualRelayServiceClass = {
+                                                publish : ( topic, data ) =>
                                                 {
-                                                        diagnosedPubJson = JSON.parse( diagnosedPubString );
-                                                        console.log( `>.< recBody :`, diagnosedPubString );
+                                                        diagnosedTopic = topic;
+                                                        console.log( `>.< recBody :`, data );
+                                                        console.log( `publishFunc is called with parameters :`, topic, diagnosedPubJson );
                                                 }
-                                                catch ( err )
-                                                {
-                                                        console.error( `error in parsing evt.detail.data :`, diagnosedPubString, err );
-                                                }
-
-                                                diagnosedTopic = topic;
-                                                console.log( `publishFunc is called with parameters :`, topic, diagnosedPubJson );
                                         };
                                         await relayDoctor.start( 1000 );
 
@@ -55,7 +50,7 @@ describe( 'RelayDoctor', function ()
                                                 topic : `testTopic`,
                                                 data : { hello : `world`, ts : Date.now() }
                                         };
-                                        relayDoctor.setPublishFunction( publishFunc );
+                                        relayDoctor.setRelayServiceAddress( virtualRelayServiceClass );
                                         await relayDoctor.diagnosePublishResult( publishResult, publishData );
 
                                         //      ...
@@ -64,7 +59,6 @@ describe( 'RelayDoctor', function ()
 
                                         //      ...
                                         assert.strictEqual( diagnosedTopic, publishData.topic );
-                                        assert.deepStrictEqual( diagnosedPubString, publishData.pubString );
 
                                         //      ...
                                         resolve();

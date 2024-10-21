@@ -177,7 +177,7 @@ export class RelayService
                                 //      begin doctor
                                 setTimeout( () =>
                                 {
-                                        this.relayDoctor.setPublishFunction( this.relayServiceThis );
+                                        this.relayDoctor.setRelayServiceAddress( this.relayServiceThis );
                                         this.relayDoctor.start();
                                 }, 5 * 1000 );
 

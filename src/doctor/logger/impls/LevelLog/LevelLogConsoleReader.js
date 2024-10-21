@@ -1,12 +1,12 @@
 import readline from 'readline';
 import { LevelDbManager } from "./LevelDbManager.js";
 import _ from "lodash";
-import { LogRecorder } from "./LogRecorder.js";
+import { LevelLogRecorder } from "./LevelLogRecorder.js";
 
 /**
  *      @class
  */
-export class LogConsoleReader extends LevelDbManager
+export class LevelLogConsoleReader extends LevelDbManager
 {
         /**
          *      @type {any}
@@ -15,9 +15,9 @@ export class LogConsoleReader extends LevelDbManager
 
         /**
          *      log recorder
-         *      @type {LogRecorder}
+         *      @type {LevelLogRecorder}
          */
-        logRecorder = new LogRecorder();
+        logRecorder = new LevelLogRecorder();
 
 
         //      Open the iterator to read records in ascending order by key (time)
