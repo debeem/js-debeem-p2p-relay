@@ -213,7 +213,10 @@ export class RelayDoctor
                                 //
                                 if ( ! isValidRelayDoctorPublishData( publishData ) )
                                 {
-                                        return reject( `${ this.constructor.name }.intervalThread :: invalid loaded publishData` );
+                                        console.warn( `will delete \`invalid loaded publishData\` : timestamp->${ frontElement.timestamp }` );
+                                        await this.logRecorder.delete( frontElement );
+                                        return resolve( false );
+                                        //return reject( `${ this.constructor.name }.intervalThread :: invalid loaded publishData` );
                                 }
 
                                 //

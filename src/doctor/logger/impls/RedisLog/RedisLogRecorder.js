@@ -35,19 +35,27 @@ export class RedisLogRecorder extends AbstractLogRecorder
 	tsQueueService = undefined;
 
 
-	constructor( { peerId = `` } = {} )
+	constructor( { peerId : peerIdString = `` } = {} )
 	{
 		super();
-		if ( ! _.isString( peerId ) || _.isEmpty( peerId.trim() ) )
+		if ( ! _.isString( peerIdString ) || _.isEmpty( peerIdString.trim() ) )
 		{
 			throw new Error( `${ this.constructor.name }.constructor :: invalid peerId` );
 		}
 
-		this.peerId = peerId.trim().toLowerCase();
+		this.peerId = peerIdString.trim().toLowerCase();
 		this.channel = `p2p-relay-doctor-log-${ this.peerId }`;
 
 		//	...
 		this.#initRedis();
+	}
+
+	/**
+	 *	@returns {string}
+	 */
+	getChannel()
+	{
+		return this.channel;
 	}
 
 	/**

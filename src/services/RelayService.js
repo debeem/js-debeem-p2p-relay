@@ -17,7 +17,7 @@ const log = logger( 'debeem:RelayService' )
  *      load config from .yml
  */
 import "deyml/config";
-import { RelayDoctor } from "../doctor/RelayDoctor.js";
+import { defaultMaxQueueSize, RelayDoctor } from "../doctor/RelayDoctor.js";
 
 /**
  *      whether to diagnose the publishing result; log publishData
@@ -79,7 +79,7 @@ export class RelayService
         /**
          *      @type {RelayDoctor}
          */
-        relayDoctor = new RelayDoctor();
+        relayDoctor = null;
 
 
         constructor()
@@ -108,6 +108,11 @@ export class RelayService
                 {
                         try
                         {
+                                if ( this.p2pNode )
+                                {
+                                        return reject( `${ this.constructor.name }.createRelay :: already created` );
+                                }
+
                                 const errorP2pRelayOptions = VaP2pRelayOptions.validateP2pRelayOptions( p2pRelayOptions );
                                 if ( null !== errorP2pRelayOptions )
                                 {
@@ -171,17 +176,28 @@ export class RelayService
                                         LogUtil.say( `${ ma.toString() }` );
                                 } );
 
+                                //
                                 //	begin heartbeat
+                                //
                                 this._beginBusinessPing();
 
+                                //
                                 //      begin doctor
+                                //
+                                const relayDoctorOptions = {
+                                        maxQueueSize : defaultMaxQueueSize,
+                                        peerId : peerIdObject.toString(),
+                                };
+                                this.relayDoctor = new RelayDoctor( relayDoctorOptions );
+                                this.relayDoctor.setRelayServiceAddress( this.relayServiceThis );
                                 setTimeout( () =>
                                 {
-                                        this.relayDoctor.setRelayServiceAddress( this.relayServiceThis );
                                         this.relayDoctor.start();
-                                }, 5 * 1000 );
+                                }, 1000 );
 
+                                //
                                 //	setup stop
+                                //
                                 process.on( 'SIGTERM', this.stop );
                                 process.on( 'SIGINT', this.stop );
 

@@ -1,9 +1,9 @@
-import { LogConsoleReader } from "./doctor/LevelDb/LevelLogConsoleReader.js";
+import { RedisLogConsoleReader } from "./doctor/logger/impls/RedisLog/RedisLogConsoleReader.js";
 
 
 // Instantiate the LevelLogConsoleReader class and start reading logs
 ( async () =>
 {
-        const logReader = new LogConsoleReader();
+        const logReader = new RedisLogConsoleReader();
         await logReader.startReading();
 } )();

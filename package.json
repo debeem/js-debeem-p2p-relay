@@ -1,6 +1,6 @@
 {
 	"name": "debeem-p2p-relay",
-	"version": "1.0.27",
+	"version": "1.0.28",
 	"description": "DeBeem Relay",
 	"leadMaintainer": "DeBeem, Team.",
 	"main": "src/index.js",
@@ -64,6 +64,7 @@
 		"debeem-queue": "^1.0.29",
 		"debeem-utils": "^1.0.77",
 		"deyml": "^1.0.3",
+		"ioredis": "^5.4.1",
 		"level": "^8.0.1",
 		"libp2p": "^1.9.4",
 		"lodash": "^4.17.21",
