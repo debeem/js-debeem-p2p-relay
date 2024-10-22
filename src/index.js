@@ -3,6 +3,8 @@
  */
 export * from "./doctor/RelayDoctor.js";
 export * from "./doctor/SystemStatus.js";
+export * from "./doctor/logger/impls/RedisLog/RedisLogRecorder.js";
+export * from "./doctor/logger/impls/RedisLog/RedisLogConsoleReader.js";
 
 
 /**
@@ -21,7 +23,17 @@ export * from "./services/RelayService.js";
 
 
 /**
+ * 	@export utils
+ */
+export * from "./utils/CommonUtil.js";
+export * from "./utils/LocalParamUtil.js";
+export * from "./utils/PeerUtil.js";
+export * from "./utils/PrepareUtil.js";
+
+
+/**
  *      @export validators
  */
+export * from "./validators/VaDiagnosticLogElement.js";
 export * from "./validators/VaP2pNodeOptions.js";
 export * from "./validators/VaP2pRelayOptions.js";
