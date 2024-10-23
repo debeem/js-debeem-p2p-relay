@@ -1,7 +1,7 @@
 import { LevelDbManager } from "./LevelDbManager.js";
 import _ from "lodash";
 import { VaDiagnosticLogElement } from "../../../../validators/VaDiagnosticLogElement.js";
-import { AbstractLogRecorder, isValidDiagnosticLogElement } from "../../AbstractLogRecorder.js";
+import { isValidDiagnosticLogElement } from "../../AbstractLogRecorder.js";
 
 
 /**

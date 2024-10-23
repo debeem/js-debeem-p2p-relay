@@ -1,5 +1,5 @@
 import assert from "assert";
-import { P2pNodeTransports, VaP2pRelayOptions } from "../../src/index.js";
+import { VaP2pRelayOptions } from "../../src/index.js";
 
 
 /**

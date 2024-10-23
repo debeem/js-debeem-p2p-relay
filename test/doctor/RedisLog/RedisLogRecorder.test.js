@@ -1,7 +1,7 @@
 import assert from "assert";
 import { TestUtil } from "debeem-utils";
 import _ from "lodash";
-import { RedisLogRecorder } from "../../../src/doctor/logger/impls/RedisLog/RedisLogRecorder.js";
+import { RedisLogRecorder } from "../../../src/index.js";
 
 
 /**

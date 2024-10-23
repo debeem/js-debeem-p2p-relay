@@ -1,8 +1,7 @@
 import assert from "assert";
 import { ProcessUtil, TestUtil } from "debeem-utils";
-import _ from "lodash";
-import { RedisLogRecorder } from "../../../src/doctor/logger/impls/RedisLog/RedisLogRecorder.js";
-import { PrepareUtil } from "../../../src/utils/PrepareUtil.js";
+import { RedisLogRecorder } from "../../../src/index.js";
+import { PrepareUtil } from "../../../src/index.js";
 
 
 /**

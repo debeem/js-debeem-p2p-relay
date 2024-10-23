@@ -1,6 +1,4 @@
 import assert from "assert";
-import { defaultMaxQueueSize, RelayDoctor } from "../../src/index.js";
-import { TestUtil } from "debeem-utils";
 
 
 /**

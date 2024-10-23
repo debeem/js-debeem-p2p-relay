@@ -1,5 +1,5 @@
 import assert from "assert";
-import { VaDiagnosticLogElement } from "../../src/validators/VaDiagnosticLogElement.js";
+import { VaDiagnosticLogElement } from "../../src/index.js";
 
 
 /**

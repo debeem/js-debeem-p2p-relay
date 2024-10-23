@@ -1,6 +1,5 @@
 import readline from 'readline';
 import { LevelDbManager } from "./LevelDbManager.js";
-import _ from "lodash";
 import { LevelLogRecorder } from "./LevelLogRecorder.js";
 
 /**
