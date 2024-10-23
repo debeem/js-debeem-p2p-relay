@@ -23,8 +23,8 @@ describe( 'VaP2pRelayOptions', function ()
                         assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( {} ), `invalid p2pRelayOptions` );
                         assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( { peerId : null } ), `invalid p2pRelayOptions.port` );
 
-                        assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( { peerIdFilename : `` } ), `invalid p2pRelayOptions.peerIdFilename` );
-                        assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( { swarmKeyFilename : `` } ), `invalid p2pRelayOptions.swarmKeyFilename` );
+                        //assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( { peerIdFilename : `` } ), `invalid p2pRelayOptions.peerIdFilename` );
+                        //assert.strictEqual( VaP2pRelayOptions.validateP2pRelayOptions( { swarmKeyFilename : `` } ), `invalid p2pRelayOptions.swarmKeyFilename` );
 
                         let p2pRelayOptions = {
                                 port : 0

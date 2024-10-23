@@ -1,6 +1,6 @@
 {
 	"name": "debeem-p2p-relay",
-	"version": "1.0.29",
+	"version": "1.0.30",
 	"description": "DeBeem Relay",
 	"leadMaintainer": "DeBeem, Team.",
 	"main": "src/index.js",

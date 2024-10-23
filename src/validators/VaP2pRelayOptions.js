@@ -20,20 +20,20 @@ export class VaP2pRelayOptions
                 //	if the user does not specify the correct peerIdFilename,
                 //	the default peerIdFilename will be used
                 //
-                if ( _.isString( p2pRelayOptions.peerIdFilename ) )
-                {
-                        if ( _.isEmpty( p2pRelayOptions.peerIdFilename ) )
-                        {
-                                return `invalid p2pRelayOptions.peerIdFilename`;
-                        }
-                }
-                if ( _.isString( p2pRelayOptions.swarmKeyFilename ) )
-                {
-                        if ( _.isEmpty( p2pRelayOptions.swarmKeyFilename ) )
-                        {
-                                return `invalid p2pRelayOptions.swarmKeyFilename`;
-                        }
-                }
+                // if ( _.isString( p2pRelayOptions.peerIdFilename ) )
+                // {
+                //         if ( _.isEmpty( p2pRelayOptions.peerIdFilename ) )
+                //         {
+                //                 return `invalid p2pRelayOptions.peerIdFilename`;
+                //         }
+                // }
+                // if ( _.isString( p2pRelayOptions.swarmKeyFilename ) )
+                // {
+                //         if ( _.isEmpty( p2pRelayOptions.swarmKeyFilename ) )
+                //         {
+                //                 return `invalid p2pRelayOptions.swarmKeyFilename`;
+                //         }
+                // }
 
                 if ( ! ProcessUtil.isValidPortNumber( p2pRelayOptions.port ) )
                 {
