@@ -1,13 +1,13 @@
 import { pEvent } from "p-event";
 import { LogUtil, ProcessUtil, TypeUtil } from 'debeem-utils';
-import { P2pService } from "./P2pService.js";
+import { P2pNodeService } from "./P2pNodeService.js";
 import { PeerUtil } from "../utils/PeerUtil.js";
 import { PrepareUtil } from "../utils/PrepareUtil.js";
 import { logger } from "@libp2p/logger";
 import _ from 'lodash';
 import { P2pNodeOptionsBuilder, P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 import { LocalParamUtil } from "../utils/LocalParamUtil.js";
-import { VaP2pRelayOptions } from "../validators/VaP2pRelayOptions.js";
+import { VaRelayOptions } from "../validators/VaRelayOptions.js";
 
 const log = logger( 'debeem:RelayService' )
 
@@ -18,6 +18,7 @@ const log = logger( 'debeem:RelayService' )
  */
 import "deyml/config";
 import { defaultMaxQueueSize, RelayDoctor } from "../doctor/RelayDoctor.js";
+import { LeaderElection } from "../election/LeaderElection.js";
 
 /**
  *      whether to diagnose the publishing result; log publishData
@@ -43,14 +44,19 @@ export class RelayService
 
 
         /**
-         *    @type {P2pService}
+         *    @type {P2pNodeService}
          */
-        p2pService = null;
+        p2pNodeService = null;
 
         /**
          *    @type {Libp2p|null}
          */
         p2pNode = null;
+
+        /**
+         *      @type {RelayService}
+         */
+        relayServiceThis = null;
 
         /**
          *    @typedef { Object.<string, CallbackMessage> }    Subscribes
@@ -81,17 +87,22 @@ export class RelayService
          */
         relayDoctor = null;
 
+        /**
+         *      @type {LeaderElection}
+         */
+        leaderElection = null;
+
 
         constructor()
         {
-                if ( this.p2pNode || this.p2pService )
+                if ( this.p2pNode || this.p2pNodeService )
                 {
                         throw new Error( `${ this.constructor.name } :: already created` );
                 }
 
                 //	...
                 this.relayServiceThis = this;
-                this.p2pService = new P2pService();
+                this.p2pNodeService = new P2pNodeService();
         }
 
         /**
@@ -113,7 +124,7 @@ export class RelayService
                                         return reject( `${ this.constructor.name }.createRelay :: already created` );
                                 }
 
-                                const errorP2pRelayOptions = VaP2pRelayOptions.validateP2pRelayOptions( p2pRelayOptions );
+                                const errorP2pRelayOptions = VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions );
                                 if ( null !== errorP2pRelayOptions )
                                 {
                                         return reject( `${ this.constructor.name }.createRelay :: ${ errorP2pRelayOptions }` );
@@ -157,6 +168,19 @@ export class RelayService
                                         .setAnnounceAddresses( p2pRelayOptions.announceAddresses )
                                         .setBootstrapperAddresses( p2pRelayOptions.bootstrapperAddresses )
                                         .setPubsubPeerDiscoveryTopics( p2pRelayOptions.pubsubPeerDiscoveryTopics )
+                                        .setCallbackPeerEvent( ( event, peerId ) =>
+                                        {
+                                                if ( this.leaderElection &&
+                                                        _.isFunction( this.leaderElection.handlePeerEvent ) )
+                                                {
+                                                        this.leaderElection.handlePeerEvent( event, peerId );
+                                                }
+                                                if ( p2pRelayOptions &&
+                                                        _.isFunction( p2pRelayOptions.callbackPeerEvent ) )
+                                                {
+                                                        p2pRelayOptions.callbackPeerEvent( event, peerId );
+                                                }
+                                        })
                                         .setCallbackMessage( ( param ) =>
                                         {
                                                 this.onReceivedMessage( param );
@@ -164,7 +188,7 @@ export class RelayService
                                         .setTransports( P2pNodeTransports.CIRCUIT_RELAY | P2pNodeTransports.TCP )
                                         .build();
                                 LogUtil.say( `pubsubPeerDiscoveryTopics: ${ p2pRelayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
-                                this.p2pNode = await this.p2pService.createP2pNode( createP2pOptions );
+                                this.p2pNode = await this.p2pNodeService.createP2pNode( createP2pOptions );
                                 await this.p2pNode.start();
                                 await this.startPubSub();
 
@@ -182,18 +206,44 @@ export class RelayService
                                 this._beginBusinessPing();
 
                                 //
+                                //      begin leader election
+                                //
+                                const leaderElectionOptions = {
+                                        peerId : peerIdObject.toString(),
+                                        pClsRelayService : this.relayServiceThis
+                                };
+                                this.leaderElection = new LeaderElection( leaderElectionOptions );
+                                await this.subscribe( this.leaderElection.getElectionTopic(), async ( param ) =>
+                                {
+                                        try
+                                        {
+                                                await this.leaderElection.handleElectionMessage( param );
+                                        }
+                                        catch ( err )
+                                        {
+                                                console.error( `${ this.constructor.name }.createRelay subscribe callback :: err`, err );
+                                        }
+                                });
+                                setTimeout( async () =>
+                                {
+                                        await this.leaderElection.start();
+
+                                }, 1000 );
+
+                                //
                                 //      begin doctor
                                 //
                                 const relayDoctorOptions = {
                                         maxQueueSize : defaultMaxQueueSize,
                                         peerId : peerIdObject.toString(),
+                                        pClsRelayService : this.relayServiceThis,
                                 };
                                 this.relayDoctor = new RelayDoctor( relayDoctorOptions );
-                                this.relayDoctor.setRelayServiceAddress( this.relayServiceThis );
                                 setTimeout( () =>
                                 {
                                         this.relayDoctor.start();
                                 }, 1000 );
+
 
                                 //
                                 //	setup stop
@@ -226,7 +276,6 @@ export class RelayService
                 //metricsServer && await metricsServer.close()
                 process.exit( 0 );
         }
-
 
         /**
          *    @param param    {CallbackMessageParams}

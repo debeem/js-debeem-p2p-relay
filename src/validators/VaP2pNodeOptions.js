@@ -45,6 +45,11 @@ export class VaP2pNodeOptions
                 {
                         return `invalid p2pNodeOptions.pubsubPeerDiscoveryTopics`;
                 }
+                if ( p2pNodeOptions.callbackPeerEvent &&
+                        ! _.isFunction( p2pNodeOptions.callbackPeerEvent ) )
+                {
+                        return `invalid p2pNodeOptions.callbackPeerEvent`;
+                }
                 if ( ! _.isFunction( p2pNodeOptions.callbackMessage ) )
                 {
                         return `invalid p2pNodeOptions.callbackMessage`;

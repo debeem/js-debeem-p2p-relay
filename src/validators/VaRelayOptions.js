@@ -2,7 +2,7 @@ import _ from "lodash";
 import { ProcessUtil } from "debeem-utils";
 
 
-export class VaP2pRelayOptions
+export class VaRelayOptions
 {
         /**
          *    @param p2pRelayOptions    {P2pRelayOptions}

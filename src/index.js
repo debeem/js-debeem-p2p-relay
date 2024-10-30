@@ -11,14 +11,14 @@ export * from "./doctor/logger/impls/RedisLog/RedisLogConsoleReader.js";
  * 	@export models
  */
 export * from "./models/P2pNodeOptionsBuilder.js";
-export * from "./models/P2pRelayOptionsBuilder.js";
+export * from "./models/RelayOptionsBuilder.js";
 
 
 /**
  * 	@export services
  */
 export * from "./services/AbstractP2pPackagePool.js";
-export * from "./services/P2pService.js";
+export * from "./services/P2pNodeService.js";
 export * from "./services/RelayService.js";
 
 
@@ -36,4 +36,4 @@ export * from "./utils/PrepareUtil.js";
  */
 export * from "./validators/VaDiagnosticLogElement.js";
 export * from "./validators/VaP2pNodeOptions.js";
-export * from "./validators/VaP2pRelayOptions.js";
+export * from "./validators/VaRelayOptions.js";

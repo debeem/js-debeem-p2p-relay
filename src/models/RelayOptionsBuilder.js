@@ -1,5 +1,5 @@
 import { TOPIC as pubsubPeerDiscoveryDefaultTopic } from '@libp2p/pubsub-peer-discovery';
-import { VaP2pRelayOptions } from "../validators/VaP2pRelayOptions.js";
+import { VaRelayOptions } from "../validators/VaRelayOptions.js";
 import _ from "lodash";
 
 /**
@@ -10,6 +10,7 @@ import _ from "lodash";
  *	@property announceAddresses {string[]}
  *	@property bootstrapperAddresses {string[]}
  * 	@property pubsubPeerDiscoveryTopics {string[]}
+ *	@property callbackPeerEvent {CallbackPeerEvent}
  */
 
 
@@ -17,7 +18,7 @@ import _ from "lodash";
 /**
  * 	@class
  */
-export class P2pRelayOptionsBuilder
+export class RelayOptionsBuilder
 {
 	/**
 	 *	@type {string}
@@ -49,6 +50,10 @@ export class P2pRelayOptionsBuilder
 	 */
 	pubsubPeerDiscoveryTopics = [ pubsubPeerDiscoveryDefaultTopic ];
 
+	/**
+	 * 	@type {CallbackPeerEvent}
+	 */
+	callbackPeerEvent = null;
 
 
 	constructor()
@@ -56,11 +61,11 @@ export class P2pRelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {P2pRelayOptionsBuilder}
+	 *	@returns {RelayOptionsBuilder}
 	 */
 	static builder()
 	{
-		return new P2pRelayOptionsBuilder();
+		return new RelayOptionsBuilder();
 	}
 
 
@@ -141,11 +146,24 @@ export class P2pRelayOptionsBuilder
 	}
 
 	/**
+	 *	@param value	{CallbackPeerEvent}
+	 *	@returns {RelayOptionsBuilder}
+	 */
+	setCallbackPeerEvent( value )
+	{
+		if ( _.isFunction( value ) )
+		{
+			this.callbackPeerEvent = value;
+		}
+		return this;
+	}
+
+	/**
 	 *	@returns {P2pRelayOptions}
 	 */
 	build()
 	{
-		const error = VaP2pRelayOptions.validateP2pRelayOptions( this );
+		const error = VaRelayOptions.validateP2pRelayOptions( this );
 		if ( null !== error )
 		{
 			throw new Error( `${ this.constructor.name }.build :: ${ error }` );
@@ -158,6 +176,7 @@ export class P2pRelayOptionsBuilder
 			announceAddresses : this.announceAddresses,
 			bootstrapperAddresses : this.bootstrapperAddresses,
 			pubsubPeerDiscoveryTopics : this.pubsubPeerDiscoveryTopics,
+			callbackPeerEvent : this.callbackPeerEvent,
 		}
 	}
 }

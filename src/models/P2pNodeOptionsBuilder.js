@@ -4,6 +4,7 @@ import _ from "lodash";
 
 /**
  *        @typedef {import('./CallbackMessage.js')} CallbackMessage
+ *        @typedef {import('./CallbackPeerEvent.js')} CallbackPeerEvent
  */
 
 /**
@@ -15,6 +16,7 @@ import _ from "lodash";
  *        @property announceAddresses {string[]}
  *        @property bootstrapperAddresses {string[]}
  *        @property pubsubPeerDiscoveryTopics {string[]}
+ *        @property callbackPeerEvent {CallbackPeerEvent}
  *        @property callbackMessage {CallbackMessage}
  *        @property transports {number}
  */
@@ -107,6 +109,11 @@ export class P2pNodeOptionsBuilder
         pubsubPeerDiscoveryTopics = [ pubsubPeerDiscoveryDefaultTopic ];
 
         /**
+         *      @type {CallbackPeerEvent}
+         */
+        callbackPeerEvent = null;
+
+        /**
          *        @type {CallbackMessage}
          */
         callbackMessage = null;
@@ -196,12 +203,28 @@ export class P2pNodeOptionsBuilder
         }
 
         /**
-         *        @returns {this}
+         *      @param value    {CallbackPeerEvent}
+         *      @returns {P2pNodeOptionsBuilder}
          */
-        setCallbackMessage( /** @type {CallbackMessage} */
-                            value )
+        setCallbackPeerEvent( value )
         {
-                this.callbackMessage = value;
+                if ( _.isFunction( value ) )
+                {
+                        this.callbackPeerEvent = value;
+                }
+                return this;
+        }
+
+        /**
+         *      @param value    {CallbackMessage}
+         *      @returns {this}
+         */
+        setCallbackMessage( value )
+        {
+                if ( _.isFunction( value ) )
+                {
+                        this.callbackMessage = value;
+                }
                 return this;
         }
 
@@ -234,6 +257,7 @@ export class P2pNodeOptionsBuilder
                         announceAddresses : this.announceAddresses,
                         bootstrapperAddresses : this.bootstrapperAddresses,
                         pubsubPeerDiscoveryTopics : this.pubsubPeerDiscoveryTopics,
+                        callbackPeerEvent : this.callbackPeerEvent,
                         callbackMessage : this.callbackMessage,
                         transports : this.transports,
                 }

@@ -33,8 +33,8 @@ import { P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 
 //enable( 'debeem:gossipsub' );
 
-const log = logger( 'debeem:P2pService' )
-//enable( 'debeem:P2pService' );
+const log = logger( 'debeem:P2pNodeService' )
+//enable( 'debeem:P2pNodeService' );
 
 
 //	enable doctor in debeem:gossipsub
@@ -44,7 +44,7 @@ const log = logger( 'debeem:P2pService' )
 /**
  * 	@class
  */
-export class P2pService
+export class P2pNodeService
 {
 	/**
 	 * @typedef {import('@libp2p/interface').Libp2p} Libp2p
@@ -75,6 +75,11 @@ export class P2pService
 	 *	@type {Libp2p}
 	 */
 	static node = null;
+
+	/**
+	 *	@type {P2pNodeOptions}
+	 */
+	p2pNodeOptions = undefined;
 
 
 	constructor()
@@ -115,6 +120,11 @@ export class P2pService
 				{
 					return reject( `${ this.constructor.name }.createP2pNode :: ${ errorP2pNodeOptions }` );
 				}
+
+				/**
+				 *	@type {P2pNodeOptions}
+				 */
+				this.p2pNodeOptions = p2pNodeOptions;
 
 				//const announceAddresses = [ `/ip4/1.2.3.4/tcp/9911` ];
 				//
@@ -198,7 +208,7 @@ export class P2pService
 
 
 				/**
-				 *	@type {Libp2pOptions<P2pService>}
+				 *	@type {Libp2pOptions<P2pNodeService>}
 				 */
 				const options = {
 					peerId: p2pNodeOptions.peerId,
@@ -297,20 +307,24 @@ export class P2pService
 				 */
 
 				/**
-				 *	@type {import('@libp2p/interface').Libp2p<P2pService>}
+				 *	@type {import('@libp2p/interface').Libp2p<P2pNodeService>}
 				 */
-				this.node = await createLibp2p( /** @type {Libp2pOptions<P2pService>} */ options );
+				this.node = await createLibp2p( /** @type {Libp2pOptions<P2pNodeService>} */ options );
 
 				//	...
 				this.node.addEventListener( 'peer:connect',  ( /** @type {{ detail: any; }} */ evt ) =>
 				{
 					this.handleNodePeerConnect( evt );
 				});
+				this.node.addEventListener( 'peer:disconnect',  ( /** @type {{ detail: any; }} */ evt ) =>
+				{
+					this.handleNodePeerDisconnect( evt );
+				});
 				this.node.addEventListener( 'peer:discovery', ( /** @type {{ detail: any; }} */ evt ) =>
 				{
 					this.handleNodePeerDiscovery( evt );
 				});
-				this.node.addEventListener('self:peer:update', ( /** @type {{ detail: any; }} */ evt ) =>
+				this.node.addEventListener( 'self:peer:update', ( /** @type {{ detail: any; }} */ evt ) =>
 				{
 					this.handleNodeSelfPeerUpdate( evt );
 				});
@@ -373,11 +387,49 @@ export class P2pService
 		try
 		{
 			const peerId = evt.detail;
+			if ( this.p2pNodeOptions &&
+				_.isFunction( this.p2pNodeOptions.callbackPeerEvent ) )
+			{
+				this.p2pNodeOptions.callbackPeerEvent( `peer:connect`, peerId );
+			}
 			log( 'Connection established to: %s', peerId.toString() ) // Emitted when a peer has been found
 		}
 		catch ( err )
 		{
 			log( 'exception in handleNodePeerConnect: %O', err );
+		}
+	}
+
+	/**
+	 *	@param evt
+	 *	@return {boolean}
+	 */
+	handleNodePeerDisconnect( /** @type {{ detail: any; }} */ evt )
+	{
+		if ( ! this.node )
+		{
+			log( `${ this.constructor.name }.handleNodePeerDisconnect :: node is not initialized` );
+			return false;
+		}
+		if ( ! evt )
+		{
+			log( `${ this.constructor.name }.handleNodePeerDisconnect :: undefined evt` );
+			return false;
+		}
+
+		try
+		{
+			const peerId = evt.detail;
+			if ( this.p2pNodeOptions &&
+				_.isFunction( this.p2pNodeOptions.callbackPeerEvent ) )
+			{
+				this.p2pNodeOptions.callbackPeerEvent( `peer:disconnect`, peerId );
+			}
+			log( 'Connection disconnected: %s', peerId.toString() ) // Emitted when a peer has been found
+		}
+		catch ( err )
+		{
+			log( 'exception in handleNodePeerDisconnect: %O', err );
 		}
 	}
 
@@ -405,6 +457,11 @@ export class P2pService
 			//console.doctor( `peerInfo : `, peerInfo );
 			//node.dial( peerInfo.id );
 			console.log( `))) Discovered: ${ peerInfo.id.toString() }` )
+			if ( this.p2pNodeOptions &&
+				_.isFunction( this.p2pNodeOptions.callbackPeerEvent ) )
+			{
+				this.p2pNodeOptions.callbackPeerEvent( `peer:discovery`, peerInfo.id );
+			}
 
 			//
 			//	Notifies the router that a peer has been connected
@@ -510,9 +567,21 @@ export class P2pService
 			//   ]
 			// }
 
+			/**
+			 * 	@type {string}
+			 */
 			const recType = evt.detail.type;
+
+			/**
+			 * 	@type {string}
+			 */
 			const recTopic = evt.detail.topic;
+
 			const recFrom = evt.detail.from;
+
+			/**
+			 * 	@type {bigint}
+			 */
 			const recSequenceNumber = evt.detail.sequenceNumber;
 			let recBody = null;
 

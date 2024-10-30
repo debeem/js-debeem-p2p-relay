@@ -2,6 +2,7 @@ import { SystemStatus } from "./SystemStatus.js";
 import _ from "lodash";
 import { RedisLogRecorder } from "./logger/impls/RedisLog/RedisLogRecorder.js";
 import { isValidDiagnosticLogElement } from "./logger/AbstractLogRecorder.js";
+import { RelayService } from "../services/RelayService.js";
 
 /**
  *      @typedef {import('@libp2p/interface').PublishResult} PublishResult
@@ -62,7 +63,7 @@ export class RelayDoctor
         logRecorder = undefined;
 
         /**
-         *      @typedef {import('@libp2p/interface').PubSub.publish} publish
+         *      @typedef { RelayService }
          */
         pClsRelayService = undefined;
 
@@ -75,7 +76,8 @@ export class RelayDoctor
 
         constructor( {
                              maxQueueSize = defaultMaxQueueSize,
-                             peerId = ``
+                             peerId = ``,
+                             pClsRelayService = undefined
                      } = {} )
         {
                 if ( _.isNumber( maxQueueSize ) && maxQueueSize > 0 )
@@ -90,7 +92,13 @@ export class RelayDoctor
                 {
                         throw new Error( `${ this.constructor.name }.constructor :: invalid peerId` );
                 }
+                if ( ! ( pClsRelayService instanceof RelayService ) )
+                {
+                        throw new Error( `${ this.constructor.name }.constructor :: invalid pClsRelayService` );
+                }
+
                 this.peerId = peerId.trim().toLowerCase();
+                this.pClsRelayService = pClsRelayService;
 
                 /**
                  *      create log recorder
@@ -101,7 +109,7 @@ export class RelayDoctor
 
         /**
          *      set RelayService class instance address
-         *      @param pClsRelayService    {publish}
+         *      @param pClsRelayService    {RelayService}
          *      @returns {void}
          */
         setRelayServiceAddress( pClsRelayService )
