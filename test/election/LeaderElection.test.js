@@ -1,69 +1,9 @@
 import assert from "assert";
-import { PeerIdService } from "debeem-lib";
 import { ProcessUtil, TimerUtil } from "debeem-utils";
 import { PeerUtil, RelayOptionsBuilder, RelayService } from "../../src/index.js";
 import { bootstrappers } from "../../examples/bootstrappers.js";
-import _ from "lodash";
 
-let fakePeers = [];
 let fakeRelayServices = [];
-
-class FakeRelayService
-{
-	peerId = null;
-
-	async init()
-	{
-		return new Promise( async (
-			resolve,
-			reject
-		) =>
-		{
-			try
-			{
-				if ( null === this.peerId )
-				{
-					this.peerId = await PeerIdService.generatePeerId();
-				}
-
-				//	...
-				fakePeers.push( this.peerId );
-
-				//	...
-				resolve( true );
-			}
-			catch ( err )
-			{
-				reject( err );
-			}
-		} );
-	}
-
-
-
-	async publish(
-		topic,
-		data
-	)
-	{
-		return new Promise( async (
-			resolve,
-			reject
-		) =>
-		{
-			try
-			{
-				resolve( {
-					recipients : fakePeers
-				} );
-			}
-			catch ( err )
-			{
-				reject( err );
-			}
-		} );
-	}
-}
 
 
 /**
