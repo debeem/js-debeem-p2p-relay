@@ -8,8 +8,18 @@ P2P_BOOTSTRAPPERS:
   - /ip4/8.140.247.159/tcp/8011/p2p/QmUNaruC7WfHNLeFNH2CUPBWLVPzjDg5shj2zs9nGaajSL
 
 
+#
 #   whether to diagnose the publishing result; log publishData
-DIAGNOSE_PUBLISHING_RESULT: true
+#
+P2P_RELAY_DIAGNOSE_PUBLISHING_RESULT: true
+
+
+#
+#   READONLY :
+#   mark whether the current node is the leader and the leader's peerId
+#
+P2P_RELAY_IS_LEADER : false
+P2P_RELAY_LEADER_PEER_ID :
 
 
 # cache

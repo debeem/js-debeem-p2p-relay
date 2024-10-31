@@ -26,7 +26,7 @@ import { LoggerUtil } from "../utils/LoggerUtil.js";
  *      whether to diagnose the publishing result; log publishData
  *      @type {boolean}
  */
-export const diagnosePublishingResult = ProcessUtil.getParamBooleanValue( `DIAGNOSE_PUBLISHING_RESULT`, false );
+export const diagnosePublishingResult = ProcessUtil.getParamBooleanValue( `P2P_RELAY_DIAGNOSE_PUBLISHING_RESULT`, false );
 
 
 

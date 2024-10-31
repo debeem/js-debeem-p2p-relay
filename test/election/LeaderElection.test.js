@@ -54,6 +54,7 @@ describe( 'LeaderElection', function ()
 					.setBootstrapperAddresses( bootstrappers )
 					.setPubsubPeerDiscoveryTopics( [] )
 					.build();
+				console.log( `////////// ////////// ////////// ////////// ////////// //////////` );
 				console.log( `will createRelay with options: `, createRelayOptions );
 				const relayService = new RelayService();
 				const relayNode = await relayService.createRelay( createRelayOptions );

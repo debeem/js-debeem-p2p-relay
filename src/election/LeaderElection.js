@@ -7,6 +7,7 @@ import {
 } from "../models/P2pElectionMessageBuilder.js";
 import { LoggerUtil } from "../utils/LoggerUtil.js";
 import { PeerUtil } from "../utils/PeerUtil.js";
+import { ProcessUtil } from "debeem-utils";
 
 /**
  *    @typedef {import('@libp2p/interface-pubsub/src')} PublishResult
@@ -367,8 +368,13 @@ export class LeaderElection
 			{
 				this.log.info( `${ this.constructor.name }.#startElection :: 🌼 Starting election...` );
 
-				//	...
-				this.#isLeader = false;
+				/**
+				 * 	update leader status
+				 */
+				this.#updateLeaderStatus( {
+					isLeader : false,
+					leaderPeerId : null
+				} );
 
 				/**
 				 *	@type { P2pElectionMessage }
@@ -444,7 +450,15 @@ export class LeaderElection
 
 			//	...
 			this.peers.delete( this.#leaderPeerId );
-			this.#leaderPeerId = null;
+
+			/**
+			 * 	update leader status
+			 */
+			this.#updateLeaderStatus( {
+				isLeader : false,
+				leaderPeerId : null
+			} );
+
 			await this.#startElection();
 
 		}, this.#heartbeatResetRestartingElectionTimerValue );
@@ -536,11 +550,13 @@ export class LeaderElection
 				 */
 				const electionPeerId = messageBody.electionPeerId;
 
-				//	update leader peerId
-				this.#leaderPeerId = electionPeerId;
-
-				//	update leader status
-				this.#isLeader = ( electionPeerId === this.peerId );
+				/**
+				 * 	update leader status
+				 */
+				this.#updateLeaderStatus( {
+					isLeader : ( electionPeerId === this.peerId ),
+					leaderPeerId : electionPeerId
+				} );
 
 				//	...
 				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 this peer[${ this.peerId }] is leader=${ this.#isLeader }` );
@@ -630,9 +646,12 @@ export class LeaderElection
 				this.log.info( `${ this.constructor.name }.#announceVictory :: 💚🦄🐥 peer[${ this.peerId }] is the new leader` );
 
 				/**
-				 * 	update leader
+				 * 	update leader status
 				 */
-				this.#isLeader = true;
+				this.#updateLeaderStatus( {
+					isLeader : true,
+					leaderPeerId : this.peerId
+				} );
 
 				/**
 				 *	@type { P2pElectionMessage }
@@ -725,5 +744,42 @@ export class LeaderElection
 				reject( err );
 			}
 		} );
+	}
+
+	/**
+	 * 	update leader status
+	 *	@param isLeader		{boolean}
+	 *	@param leaderPeerId	{ string | null | undefined }
+	 */
+	#updateLeaderStatus( {
+			       isLeader = false,
+			       leaderPeerId = undefined
+		       } )
+	{
+		/**
+		 * 	update leader status
+		 */
+		if ( _.isBoolean( isLeader ) )
+		{
+			//	update leader status
+			this.#isLeader = isLeader;
+			if ( ProcessUtil.isNodeEnvironment() )
+			{
+				process.env.P2P_RELAY_IS_LEADER = ( this.#isLeader ? `true` : `false` );
+			}
+		}
+
+		/**
+		 * 	update leader peerId
+		 */
+		//	update leader peerId
+		this.#leaderPeerId = _.isString( leaderPeerId ) ? leaderPeerId : undefined;
+		if ( ProcessUtil.isNodeEnvironment() )
+		{
+			process.env.P2P_RELAY_LEADER_PEER_ID = _.isString( leaderPeerId ) ? leaderPeerId : undefined;
+		}
+
+		//	...
+		this.log.info( `${ this.constructor.name }.#updateLeaderStatus :: isLeader=${ this.#isLeader }, leaderPeerId=${ String( this.#leaderPeerId ) }` );
 	}
 }
