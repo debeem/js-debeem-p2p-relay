@@ -25,13 +25,6 @@ describe( 'RelayDoctor', function ()
                         {
                                 try
                                 {
-                                        const drOptions = {
-                                                maxQueueSize : defaultMaxQueueSize,
-                                                peerId : `peerId-123`
-                                        };
-                                        const relayDoctor = new RelayDoctor( drOptions );
-                                        await relayDoctor.logRecorder.clear();
-
                                         let diagnosedTopic = ``;
                                         let diagnosedPubJson = ``;
                                         const virtualRelayServiceClass = {
@@ -42,6 +35,15 @@ describe( 'RelayDoctor', function ()
                                                         console.log( `publishFunc is called with parameters :`, topic, diagnosedPubJson );
                                                 }
                                         };
+
+                                        const drOptions = {
+                                                maxQueueSize : defaultMaxQueueSize,
+                                                peerId : `peerId-123`,
+                                                pClsRelayService : virtualRelayServiceClass
+                                        };
+                                        const relayDoctor = new RelayDoctor( drOptions );
+                                        await relayDoctor.logRecorder.clear();
+
                                         await relayDoctor.start( 1000 );
 
                                         //      ...
@@ -50,7 +52,6 @@ describe( 'RelayDoctor', function ()
                                                 topic : `testTopic`,
                                                 data : { hello : `world`, ts : Date.now() }
                                         };
-                                        relayDoctor.setRelayServiceAddress( virtualRelayServiceClass );
                                         await relayDoctor.diagnosePublishResult( publishResult, publishData );
 
                                         //      ...

@@ -98,8 +98,10 @@ export class RelayDoctor
                 {
                         throw new Error( `${ this.constructor.name }.constructor :: invalid peerId` );
                 }
-                if ( ! ( pClsRelayService instanceof RelayService ) )
+                if ( ! pClsRelayService ||
+                        ! ( `publish` in pClsRelayService ) )
                 {
+                        //      check if the instance has a `publish` method
                         throw new Error( `${ this.constructor.name }.constructor :: invalid pClsRelayService` );
                 }
 
@@ -194,11 +196,11 @@ export class RelayDoctor
                         {
                                 if ( ! await SystemStatus.isSystemIdle() )
                                 {
-                                        return reject( `${ this.constructor.name }.intervalThread :: system is busy` );
+                                        return reject( `${ this.constructor.name }.intervalRepublishThread :: system is busy` );
                                 }
                                 // if ( ! this.pfnPublish || ! _.isFunction( this.pfnPublish ) )
                                 // {
-                                //         return reject( `${ this.constructor.name }.intervalThread :: invalid function this.pfnPublish` );
+                                //         return reject( `${ this.constructor.name }.intervalRepublishThread :: invalid function this.pfnPublish` );
                                 // }
 
                                 /**
@@ -212,7 +214,7 @@ export class RelayDoctor
                                 }
                                 if ( ! isValidDiagnosticLogElement( frontElement ) )
                                 {
-                                        return reject( `${ this.constructor.name }.intervalThread :: invalid loaded frontElement` );
+                                        return reject( `${ this.constructor.name }.intervalRepublishThread :: invalid loaded frontElement` );
                                 }
 
                                 /**
@@ -227,7 +229,7 @@ export class RelayDoctor
                                 //
                                 if ( ! isValidRelayDoctorPublishData( publishData ) )
                                 {
-                                        console.warn( `will delete \`invalid loaded publishData\` : timestamp->${ frontElement.timestamp }` );
+                                        this.log.warn( `${ this.constructor.name }.intervalRepublishThread :: will delete \`invalid loaded publishData\` : timestamp->${ frontElement.timestamp }` );
                                         await this.logRecorder.delete( frontElement );
                                         return resolve( false );
                                         //return reject( `${ this.constructor.name }.intervalThread :: invalid loaded publishData` );
