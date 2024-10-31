@@ -24,18 +24,18 @@ class Subscriber extends BasePubSub
 					     _.has( param.body, 'bizPing' ) )
 					{
 						//	ignore heartbeat
-						console.log( `Subscriber ******** bizPing ********` );
+						this.log.info( `${ this.constructor.name }.start :: Subscriber ******** bizPing ********` );
 						return false;
 					}
 
 					//	...
-					console.log( `received a new message >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> :` );
-					console.log( `- type :`, param.type );
-					console.log( `- topic :`, param.topic );
-					console.log( `- msgId :`, param.msgId );
-					console.log( `- from :`, param.from ? param.from.toString() : null );
-					console.log( `- sequenceNumber :`, param.sequenceNumber );
-					console.log( `- body :`, param.body );
+					this.log.info( `${ this.constructor.name }.start :: received a new message >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> :` );
+					this.log.info( `${ this.constructor.name }.start :: - type :`, param.type );
+					this.log.info( `${ this.constructor.name }.start :: - topic :`, param.topic );
+					this.log.info( `${ this.constructor.name }.start :: - msgId :`, param.msgId );
+					this.log.info( `${ this.constructor.name }.start :: - from :`, param.from ? param.from.toString() : null );
+					this.log.info( `${ this.constructor.name }.start :: - sequenceNumber :`, param.sequenceNumber );
+					this.log.info( `${ this.constructor.name }.start :: - body :`, param.body );
 				});
 
 				//	...

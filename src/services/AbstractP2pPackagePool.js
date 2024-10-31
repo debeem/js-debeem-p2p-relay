@@ -1,6 +1,7 @@
 import { ChPubService, ChSubService } from "debeem-queue";
 import _ from "lodash";
 import { LocalParamUtil as LocalParamUtils } from "../utils/LocalParamUtil.js";
+import { LoggerUtil } from "../utils/LoggerUtil.js";
 
 /**
  * 	@class
@@ -10,6 +11,11 @@ export class AbstractP2pPackagePool
 	poolName= undefined;
 	chPub= undefined;
 	chSub= undefined;
+
+	/**
+	 *	@type {Logger}
+	 */
+	log = new LoggerUtil().logger;
 
 	/**
 	 *	@param [poolName]	{string}	- optional
@@ -59,7 +65,8 @@ export class AbstractP2pPackagePool
 		//	create redis pool for received HTTP requests that been broadcast from other peers
 		//
 		const redisOptions = LocalParamUtils.getRedisOptions();
-		console.log( `${ this.constructor.name } :: redisOptions :`, redisOptions );
+		//console.log( `${ this.constructor.name } :: redisOptions :`, redisOptions );
+		this.log.info( `${ this.constructor.name }.init :: redisOptions :`, redisOptions );
 
 		this.chPub = new ChPubService( redisOptions.port, redisOptions.host, {
 			port : redisOptions.port,
@@ -110,7 +117,11 @@ export class AbstractP2pPackagePool
 					return reject( `${ this.constructor.name }.push :: ${ errorP2pPackage }` );
 				}
 
-				console.log( `|||||| p2p : received a business broadcasting package, it has been verified. 
+				// console.log( `|||||| p2p : received a business broadcasting package, it has been verified.
+				// 		topic : ${ p2pPackage.topic },
+				// 		from : ${ p2pPackage.from.toString() },
+				// 		sequenceNumber: ${ p2pPackage.sequenceNumber.toString() }` );
+				this.log.info( `${ this.constructor.name }.push :: |||||| p2p : received a business broadcasting package, it has been verified. 
 						topic : ${ p2pPackage.topic }, 
 						from : ${ p2pPackage.from.toString() },
 						sequenceNumber: ${ p2pPackage.sequenceNumber.toString() }` );
@@ -148,7 +159,7 @@ export class AbstractP2pPackagePool
 		};
 		this.chSub.subscribe( this.poolName, ( /** @type {string} **/ channel, /** @type {string} **/ message, /** @type {any} **/ options ) =>
 		{
-			console.log( `))) ${ this.constructor.name } :: received message from channel [${channel}] : `, message );
+			this.log.info( `${ this.constructor.name } :: ))) received message from channel [${channel}] : `, message );
 			if ( _.isFunction( callback ) )
 			{
 				callback( channel, message, options );

@@ -5,6 +5,7 @@ import "deyml/config";
 import { ProcessUtil } from "debeem-utils";
 import _ from "lodash";
 import { VaDiagnosticLogElement } from "../../../../validators/VaDiagnosticLogElement.js";
+import { LoggerUtil } from "../../../../utils/LoggerUtil.js";
 
 
 /**
@@ -33,6 +34,11 @@ export class RedisLogRecorder extends AbstractLogRecorder
 	 * 	@type {TsQueueService}
 	 */
 	tsQueueService = undefined;
+
+	/**
+	 *	@type {Logger}
+	 */
+	log = new LoggerUtil().logger;
 
 
 	constructor( { peerId : peerIdString = `` } = {} )
@@ -302,7 +308,8 @@ export class RedisLogRecorder extends AbstractLogRecorder
 			try
 			{
 				const elements = await this.getPaginatedElements( startTimestamp, limit );
-				console.log(  `elements :`, elements );
+				//console.log(  `elements :`, elements );
+				this.log.info( `${ this.constructor.name }.getPaginatedKeys :: elements :`, elements );
 				if ( Array.isArray( elements ) &&
 					elements.length > 0 )
 				{
@@ -359,7 +366,8 @@ export class RedisLogRecorder extends AbstractLogRecorder
 					excludeStartMember : ( startTimestamp > 0 ),
 				};
 				const result = await this.tsQueueService.pull( this.channel, startTimestamp, -1, options );
-				console.log( `result :`, options, result );
+				//console.log( `result :`, options, result );
+				this.log.info( `${ this.constructor.name }.getPaginatedKeys :: result :`, options, result );
 				if ( result &&
 					result.total > 0 &&
 					Array.isArray( result.list ) &&

@@ -65,11 +65,26 @@ export class LoggerUtil
 		 */
 		if ( ! LoggerUtil.logger )
 		{
+			// const customTimestampFormat = format.timestamp( {
+			// 	format : () => new Date().toLocaleString( 'en-US', { timeZone : 'Asia/Shanghai', hour12 : false, timeZoneName : 'short' } )
+			// } );
+			// const customTimestampFormat = format.timestamp({
+			// 	format: 'YYYY-MM-DD HH:mm:ss.SSS'
+			// });
 			LoggerUtil.logger = createLogger( {
 				level : this.minLogLevel,
+				// format : format.combine(
+				// 	format.timestamp(),
+				// 	format.json()
+				// ),
 				format : format.combine(
-					format.timestamp(),
-					format.json()
+					format.timestamp( {
+						format: 'YYYY-MM-DD HH:mm:ss.SSS'
+					} ),
+					format.printf( ( { timestamp, level, message, ...meta } ) =>
+					{
+						return `[${timestamp}] ${ level }: ${ message } ${ meta && Object.keys( meta ).length ? JSON.stringify( meta ) : '' }`;
+					} )
 				),
 				transports : [
 					new transports.Console(),

@@ -23,7 +23,8 @@ class Publisher extends BasePubSub
 					     _.has( param.body, 'bizPing' ) )
 					{
 						//	ignore heartbeat
-						console.log( `Publisher ******** bizPing ********` );
+						//console.log( `Publisher ******** bizPing ********` );
+						this.log.info( `${ this.constructor.name }.start :: Publisher ******** bizPing ********` );
 						return false;
 					}
 				} );
@@ -52,7 +53,7 @@ class Publisher extends BasePubSub
 	{
 		setInterval( async () =>
 		{
-			console.log( `))) will publish data` );
+			this.log.info( `${ this.constructor.name }.loopPublishData :: ))) will publish data` );
 			// const report = this.relayService.checkHealth( this.subTopic );
 			// if ( null !== report.errors )
 			// {
@@ -73,11 +74,8 @@ class Publisher extends BasePubSub
 				this.subTopic,
 				pubObject
 			);
-			console.log(
-				`[${ datetime }] publish data to topic(${ this.subTopic }): `,
-				pubObject
-			);
-			console.log( `publishResult: `, publishResult );
+			this.log.info( `${ this.constructor.name }.loopPublishData :: publish data to topic(${ this.subTopic }): `, pubObject );
+			this.log.info( `${ this.constructor.name }.loopPublishData :: publishResult: `, publishResult );
 
 		}, 1000 );
 	}

@@ -109,7 +109,6 @@ export class LeaderElection
 	 */
 	#heartbeatResetRestartingElectionTimerValue = 10 * 1000;
 
-
 	/**
 	 *	@type {Logger}
 	 */
@@ -147,19 +146,19 @@ export class LeaderElection
 	}
 
 	/**
-	 *	@returns {boolean}
-	 */
-	isLeader()
-	{
-		return this.#isLeader;
-	}
-
-	/**
 	 *	@returns {string}
 	 */
 	getElectionTopic()
 	{
 		return this.#electionTopic;
+	}
+
+	/**
+	 *	@returns {boolean}
+	 */
+	isLeader()
+	{
+		return this.#isLeader;
 	}
 
 	/**
@@ -290,7 +289,7 @@ export class LeaderElection
 				 * 	@type {P2pElectionMessage}
 				 */
 				const messageBody = param.body;
-				this.log.info( `${ this.constructor.name }.handleElectionMessage :: messageBody[${ JSON.stringify( messageBody ) }]` );
+				this.log.info( `${ this.constructor.name }.handleElectionMessage :: messageBody`, messageBody );
 				if ( ! isValidP2pElectionMessage( messageBody ) )
 				{
 					//return reject( `${ this.constructor.name }.handleElectionMessage :: invalid param.body` );
@@ -666,11 +665,12 @@ export class LeaderElection
 			try
 			{
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: will calc result` );
-				console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId :`, this.peerId );
-				console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: peers :`, this.peers );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId :`, this.peerId );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: peers :`, this.peers );
 				const higherNodes = Array.from( this.peers )
 					.filter( peer => peer > this.peerId );
-				console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
+				//console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
 				if ( 0 === higherNodes.length )
 				{
 					this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: will announce victory` );

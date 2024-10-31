@@ -3,6 +3,7 @@ import _ from "lodash";
 import { RedisLogRecorder } from "./logger/impls/RedisLog/RedisLogRecorder.js";
 import { isValidDiagnosticLogElement } from "./logger/AbstractLogRecorder.js";
 import { RelayService } from "../services/RelayService.js";
+import { LoggerUtil } from "../utils/LoggerUtil.js";
 
 /**
  *      @typedef {import('@libp2p/interface').PublishResult} PublishResult
@@ -72,6 +73,11 @@ export class RelayDoctor
          *      @type {number}
          */
         maxQueueSize = defaultMaxQueueSize;
+
+        /**
+         *	@type {Logger}
+         */
+        log = new LoggerUtil().logger;
 
 
         constructor( {
@@ -231,7 +237,8 @@ export class RelayDoctor
                                 //      republish
                                 //
                                 const republishResult = await this.pClsRelayService.publish( publishData.topic, publishData.data );
-                                console.log( `///***///***/// republishResult :`, republishResult );
+                                //console.log( `///***///***/// republishResult :`, republishResult );
+                                this.log.info( `///***///***/// republishResult :`, republishResult );
 
                                 //
                                 //      delete the element

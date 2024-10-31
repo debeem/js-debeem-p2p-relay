@@ -7,6 +7,7 @@ import { PeerUtil } from "../../src/index.js";
 import { ProcessUtil } from "debeem-utils";
 
 import "deyml/config";
+import { LoggerUtil } from "../../src/utils/LoggerUtil.js";
 
 /**
  * 	@class
@@ -28,6 +29,12 @@ export class BasePubSub
 	 */
 	relayNode = null;
 
+	/**
+	 *	@type {Logger}
+	 */
+	log = new LoggerUtil().logger;
+
+
 
 	async start( callback )
 	{
@@ -47,7 +54,7 @@ export class BasePubSub
 					.setBootstrapperAddresses( bootstrappers )
 					.setPubsubPeerDiscoveryTopics( [] )
 					.build();
-				console.log( `will createRelay with options: `, createRelayOptions );
+				this.log.info( `${ this.constructor.name }.start :: will createRelay with options: `, createRelayOptions );
 				this.relayNode = await this.relayService.createRelay( createRelayOptions );
 				await this.relayService.subscribe( this.subTopic, ( param ) =>
 				{

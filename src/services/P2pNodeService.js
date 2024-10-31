@@ -28,6 +28,7 @@ import _ from "lodash";
 import chalk from "chalk";
 import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
 import { P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
+import { LoggerUtil } from "../utils/LoggerUtil.js";
 //enable( 'libp2p:floodsub' );
 
 
@@ -80,6 +81,11 @@ export class P2pNodeService
 	 *	@type {P2pNodeOptions}
 	 */
 	p2pNodeOptions = undefined;
+
+	/**
+	 *	@type {Logger}
+	 */
+	log = new LoggerUtil().logger;
 
 
 	constructor()
@@ -345,7 +351,8 @@ export class P2pNodeService
 				this.node.services.pubsub.addEventListener( 'subscription-change', async ( evt ) =>
 				{
 					const eventData = evt.detail;
-					console.log( chalk.bgCyan( `))) ${ new Date().toLocaleString() } -> received subscription-change :` ), evt, eventData );
+					//console.log( chalk.bgCyan( `))) ${ new Date().toLocaleString() } -> received subscription-change :` ), evt, eventData );
+					this.log.info( `${ this.constructor.name }.createP2pNode :: received subscription-change :`, evt, eventData );
 					// if ( eventData &&
 					//      _.has( eventData, 'subscriptions' ) &&
 					//      Array.isArray( eventData.subscriptions ) )
@@ -368,19 +375,21 @@ export class P2pNodeService
 
 
 	/**
-	 *	@param evt
+	 *	@param evt	{{ detail: any; }}
 	 *	@return {boolean}
 	 */
-	handleNodePeerConnect( /** @type {{ detail: any; }} */ evt )
+	handleNodePeerConnect( evt )
 	{
 		if ( ! this.node )
 		{
-			log( `${ this.constructor.name }.handleNodePeerConnect :: node is not initialized` );
+			//log( `${ this.constructor.name }.handleNodePeerConnect :: node is not initialized` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerConnect :: node is not initialized` );
 			return false;
 		}
 		if ( ! evt )
 		{
-			log( `${ this.constructor.name }.handleNodePeerConnect :: undefined evt` );
+			//log( `${ this.constructor.name }.handleNodePeerConnect :: undefined evt` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerConnect :: undefined evt` );
 			return false;
 		}
 
@@ -392,11 +401,13 @@ export class P2pNodeService
 			{
 				this.p2pNodeOptions.callbackPeerEvent( `peer:connect`, peerId );
 			}
-			log( 'Connection established to: %s', peerId.toString() ) // Emitted when a peer has been found
+			//log( 'Connection established to: %s', peerId.toString() ) // Emitted when a peer has been found
+			this.log.info( `${ this.constructor.name }.handleNodePeerConnect :: Connection established to peer[${ peerId.toString() }]` );
 		}
 		catch ( err )
 		{
-			log( 'exception in handleNodePeerConnect: %O', err );
+			//log( 'exception in handleNodePeerConnect: %O', err );
+			this.log.error( `${ this.constructor.name }.handleNodePeerConnect :: exception : `, err );
 		}
 	}
 
@@ -408,12 +419,12 @@ export class P2pNodeService
 	{
 		if ( ! this.node )
 		{
-			log( `${ this.constructor.name }.handleNodePeerDisconnect :: node is not initialized` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerDisconnect :: node is not initialized` );
 			return false;
 		}
 		if ( ! evt )
 		{
-			log( `${ this.constructor.name }.handleNodePeerDisconnect :: undefined evt` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerDisconnect :: undefined evt` );
 			return false;
 		}
 
@@ -425,29 +436,33 @@ export class P2pNodeService
 			{
 				this.p2pNodeOptions.callbackPeerEvent( `peer:disconnect`, peerId );
 			}
-			log( 'Connection disconnected: %s', peerId.toString() ) // Emitted when a peer has been found
+			//log( 'Connection disconnected: %s', peerId.toString() ) // Emitted when a peer has been found
+			this.log.info( `${ this.constructor.name }.handleNodePeerDisconnect :: Connection disconnected peer[${ peerId.toString() }]` );
 		}
 		catch ( err )
 		{
-			log( 'exception in handleNodePeerDisconnect: %O', err );
+			//log( 'exception in handleNodePeerDisconnect: %O', err );
+			this.log.info( `${ this.constructor.name }.handleNodePeerDisconnect :: exception : `, err );
 		}
 	}
 
 
 	/**
-	 *	@param evt
+	 *	@param evt	{{ detail: any; }}
 	 *	@return {boolean}
 	 */
-	handleNodePeerDiscovery( /** @type {{ detail: any; }} */ evt )
+	handleNodePeerDiscovery( evt )
 	{
 		if ( ! this.node )
 		{
-			log( `${ this.constructor.name }.handleNodePeerDiscovery :: node is not initialized` );
+			//log( `${ this.constructor.name }.handleNodePeerDiscovery :: node is not initialized` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerDiscovery :: node is not initialized` );
 			return false;
 		}
 		if ( ! evt )
 		{
-			log( `${ this.constructor.name }.handleNodePeerDiscovery :: undefined evt` );
+			//log( `${ this.constructor.name }.handleNodePeerDiscovery :: undefined evt` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerDiscovery :: undefined evt` );
 			return false;
 		}
 
@@ -456,7 +471,8 @@ export class P2pNodeService
 			const peerInfo = evt.detail;
 			//console.doctor( `peerInfo : `, peerInfo );
 			//node.dial( peerInfo.id );
-			console.log( `))) Discovered: ${ peerInfo.id.toString() }` )
+			//console.log( `))) Discovered: ${ peerInfo.id.toString() }` )
+			this.log.info( `${ this.constructor.name }.handleNodePeerDiscovery :: ))) Discovered peer[${ peerInfo.id.toString() }]` );
 			if ( this.p2pNodeOptions &&
 				_.isFunction( this.p2pNodeOptions.callbackPeerEvent ) )
 			{
@@ -471,47 +487,52 @@ export class P2pNodeService
 		}
 		catch ( err )
 		{
-			log( 'exception in handleNodePeerDiscovery: %O', err );
+			//log( 'exception in handleNodePeerDiscovery: %O', err );
+			this.log.error( `${ this.constructor.name }.handleNodePeerDiscovery :: exception : `, err );
 		}
 	}
 
 	/**
-	 *	@param evt
+	 *	@param evt	{{ detail: any; }}
 	 *	@return {boolean}
 	 */
-	handleNodeSelfPeerUpdate( /** @type {{ detail: any; }} */ evt )
+	handleNodeSelfPeerUpdate( evt )
 	{
 		if ( ! this.node )
 		{
-			log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: node is not initialized` );
+			//log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: node is not initialized` );
+			this.log.error( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: node is not initialized` );
 			return false;
 		}
 		if ( ! evt )
 		{
-			log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: undefined evt` );
+			//log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: undefined evt` );
+			this.log.error( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: undefined evt` );
 			return false;
 		}
 
 		//	Updated self multiaddrs?
-		console.log( `))) Advertising with a relay address of ${ this.node.getMultiaddrs()[0].toString() }` );
+		//console.log( `))) Advertising with a relay address of ${ this.node.getMultiaddrs()[0].toString() }` );
+		this.log.info( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: ))) Advertising with a relay address of ${ this.node.getMultiaddrs()[0].toString() }` );
 	}
 
 	/**
 	 *	@param node
 	 *	@param callbackMessage	{CallbackMessage}
-	 *	@param evt
+	 *	@param evt	{{ detail: { type: any; topic: any; from: any; }; }}
 	 *	@return {boolean}
 	 */
 	handleNodePeerMessage
 	(
 		node,
 		callbackMessage,
-		/** @type {{ detail: { type: any; topic: any; from: any; }; }} */ evt
+		evt
 	)
 	{
 		if ( ! this.node )
 		{
-			LogUtil.error( `${ this.constructor.name }.handleNodePeerMessage :: node is not initialized` );
+			//LogUtil.error( `${ this.constructor.name }.handleNodePeerMessage :: node is not initialized` );
+			this.log.error( `${ this.constructor.name }.handleNodePeerMessage :: node is not initialized` );
 			return false;
 		}
 
@@ -587,7 +608,8 @@ export class P2pNodeService
 
 			if ( 'signed' !== recType )
 			{
-				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: not signed` );
+				//LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: not signed` );
+				this.log.warn( `${ this.constructor.name }.handleNodePeerMessage :: not signed` );
 				return false;
 			}
 			if ( '_peer-discovery._p2p._pubsub' === recTopic )
@@ -596,16 +618,19 @@ export class P2pNodeService
 				return false;
 			}
 
-			LogUtil.info( `>.< BUSINESS-MESSAGE[${ recSequenceNumber }] from ${ recFrom }` );
+			//LogUtil.info( `>.< BUSINESS-MESSAGE[${ recSequenceNumber }] from ${ recFrom }` );
+			this.log.debug( `${ this.constructor.name }.handleNodePeerMessage :: >.< BUSINESS-MESSAGE[${ recSequenceNumber }] from ${ recFrom }` );
 			const stringData = new TextDecoder().decode( evt.detail.data );
 			try
 			{
 				recBody = JSON.parse( stringData );
-				console.log( `>.< recBody :`, recBody );
+				//console.log( `>.< recBody :`, recBody );
+				this.log.info( `${ this.constructor.name }.handleNodePeerMessage :: >.< recBody :`, recBody );
 			}
 			catch ( err )
 			{
-				console.error( `${ this.constructor.name }.handleNodePeerMessage :: error in parsing evt.detail.data :`, stringData, err );
+				//console.error( `${ this.constructor.name }.handleNodePeerMessage :: error in parsing evt.detail.data :`, stringData, err );
+				this.log.error( `${ this.constructor.name }.handleNodePeerMessage :: error in parsing evt.detail.data :`, stringData, err );
 			}
 
 			//	...
@@ -654,9 +679,12 @@ export class P2pNodeService
 			}
 			else
 			{
-				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: failed to build msgId` );
-				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: recFrom :`, recFrom );
-				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: recSequenceNumber :`, recSequenceNumber );
+				//LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: failed to build msgId` );
+				//LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: recFrom :`, recFrom );
+				//LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: recSequenceNumber :`, recSequenceNumber );
+				this.log.warn( `${ this.constructor.name }.handleNodePeerMessage :: failed to build msgId` );
+				this.log.warn( `${ this.constructor.name }.handleNodePeerMessage :: recFrom :`, recFrom );
+				this.log.warn( `${ this.constructor.name }.handleNodePeerMessage :: recSequenceNumber :`, recSequenceNumber );
 			}
 
 			//console.doctor( `will call callbackMessage` );
@@ -674,7 +702,8 @@ export class P2pNodeService
 			}
 			else
 			{
-				LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: callbackMessage is not a function :`, callbackMessage );
+				//LogUtil.warn( `${ this.constructor.name }.handleNodePeerMessage :: callbackMessage is not a function :`, callbackMessage );
+				this.log.error( `${ this.constructor.name }.handleNodePeerMessage :: callbackMessage is not a function :`, callbackMessage );
 			}
 
 			//
@@ -694,8 +723,9 @@ export class P2pNodeService
 		}
 		catch ( err )
 		{
-			LogUtil.error( `${ this.constructor.name }.handleNodePeerMessage :: error `, err );
-			log( 'exception in handleNodePeerMessage: %O', err );
+			//LogUtil.error( `${ this.constructor.name }.handleNodePeerMessage :: error `, err );
+			//log( 'exception in handleNodePeerMessage: %O', err );
+			this.log.error( `${ this.constructor.name }.handleNodePeerMessage :: exception :`, err );
 		}
 	}
 

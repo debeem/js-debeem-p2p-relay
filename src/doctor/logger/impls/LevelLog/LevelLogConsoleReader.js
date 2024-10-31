@@ -1,6 +1,7 @@
 import readline from 'readline';
 import { LevelDbManager } from "./LevelDbManager.js";
 import { LevelLogRecorder } from "./LevelLogRecorder.js";
+import { LoggerUtil } from "../../../../utils/LoggerUtil.js";
 
 /**
  *      @class
