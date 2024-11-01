@@ -22,6 +22,12 @@ export class LoggerUtil
 	static defaultMinLogLevel = `info`;
 
 	/**
+	 *	default package name
+	 *	@type {string}
+	 */
+	static defaultPackageName = `debeem-p2p-relay`;
+
+	/**
 	 * 	as specified exactly in RFC5424 the syslog levels are prioritized from 0 to 7 (highest to lowest).
 	 * 	{
 	 *		emerg: 0,
@@ -49,12 +55,14 @@ export class LoggerUtil
 	 */
 	minLogLevel = LoggerUtil.defaultMinLogLevel;
 
-	constructor()
+	constructor({
+			    packageName = LoggerUtil.defaultPackageName
+		    } = {})
 	{
 		/**
 		 *	@type {string}
 		 */
-		this.minLogLevel = ProcessUtil.getParamStringValue( `DEBEEM_P2P_RELAY_LOGGER_MIN_LOG_LEVEL`, LoggerUtil.defaultMinLogLevel );
+		this.minLogLevel = ProcessUtil.getParamStringValue( `P2P_RELAY_LOGGER_MIN_LOG_LEVEL`, LoggerUtil.defaultMinLogLevel );
 		if ( ! this.isValidLogLevel( this.minLogLevel ) )
 		{
 			this.minLogLevel = LoggerUtil.defaultMinLogLevel;
@@ -83,7 +91,7 @@ export class LoggerUtil
 					} ),
 					format.printf( ( { timestamp, level, message, ...meta } ) =>
 					{
-						return `[${timestamp}] ${ level }: ${ message } ${ meta && Object.keys( meta ).length ? JSON.stringify( meta ) : '' }`;
+						return `[${timestamp}] ${ packageName } ${ level }: ${ message } ${ meta && Object.keys( meta ).length ? JSON.stringify( meta ) : '' }`;
 					} )
 				),
 				transports : [

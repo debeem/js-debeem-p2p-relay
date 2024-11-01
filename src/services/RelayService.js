@@ -48,51 +48,51 @@ export class RelayService
         /**
          *    @type {P2pNodeService}
          */
-        p2pNodeService = null;
+        #p2pNodeService = null;
 
         /**
          *    @type {Libp2p|null}
          */
-        p2pNode = null;
+        #p2pNode = null;
 
         /**
          *      @type {RelayService}
          */
-        relayServiceThis = null;
+        #relayServiceThis = null;
 
         /**
          *    @typedef { Object.<string, CallbackMessage> }    Subscribes
          *    @type {Subscribes}
          */
-        subscribes = {};
+        #subscribes = {};
 
         /**
          *    @type {number}
          *    @description timer handler
          */
-        businessPingTimer = 0;
+        #businessPingTimer = 0;
 
         /**
          *    @type {number}
          *    @description interval of timer
          */
-        businessPingInterval = 5000;
+        #businessPingInterval = 5000;
 
         //	network
-        networkPrinterHandler = null;
-        lastAllPeers = undefined;
-        lastAllSubscribers = undefined;
-        lastAllTopics = undefined;
+        #networkPrinterHandler = null;
+        #lastAllPeers = undefined;
+        #lastAllSubscribers = undefined;
+        #lastAllTopics = undefined;
 
         /**
          *      @type {RelayDoctor}
          */
-        relayDoctor = null;
+        #relayDoctor = null;
 
         /**
          *      @type {LeaderElection}
          */
-        leaderElection = null;
+        #leaderElection = null;
 
         /**
          *	@type {Logger}
@@ -103,14 +103,22 @@ export class RelayService
 
         constructor()
         {
-                if ( this.p2pNode || this.p2pNodeService )
+                if ( this.#p2pNode || this.#p2pNodeService )
                 {
                         throw new Error( `${ this.constructor.name } :: already created` );
                 }
 
                 //	...
-                this.relayServiceThis = this;
-                this.p2pNodeService = new P2pNodeService();
+                this.#relayServiceThis = this;
+                this.#p2pNodeService = new P2pNodeService();
+        }
+
+        /**
+         *      @returns {Libp2p|null}
+         */
+        getP2pNode()
+        {
+                return this.#p2pNode;
         }
 
         /**
@@ -127,7 +135,7 @@ export class RelayService
                 {
                         try
                         {
-                                if ( this.p2pNode )
+                                if ( this.#p2pNode )
                                 {
                                         return reject( `${ this.constructor.name }.createRelay :: already created` );
                                 }
@@ -180,10 +188,10 @@ export class RelayService
                                         .setPubsubPeerDiscoveryTopics( p2pRelayOptions.pubsubPeerDiscoveryTopics )
                                         .setCallbackPeerEvent( ( event, peerId ) =>
                                         {
-                                                if ( this.leaderElection &&
-                                                        _.isFunction( this.leaderElection.handlePeerEvent ) )
+                                                if ( this.#leaderElection &&
+                                                        _.isFunction( this.#leaderElection.handlePeerEvent ) )
                                                 {
-                                                        this.leaderElection.handlePeerEvent( event, peerId );
+                                                        this.#leaderElection.handlePeerEvent( event, peerId );
                                                 }
                                                 if ( p2pRelayOptions &&
                                                         _.isFunction( p2pRelayOptions.callbackPeerEvent ) )
@@ -199,12 +207,12 @@ export class RelayService
                                         .build();
                                 //LogUtil.say( `pubsubPeerDiscoveryTopics: ${ p2pRelayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
                                 this.log.info( `${ this.constructor.name }.createRelay :: ))) pubsubPeerDiscoveryTopics: ${ p2pRelayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
-                                this.p2pNode = await this.p2pNodeService.createP2pNode( createP2pOptions );
-                                await this.p2pNode.start();
+                                this.#p2pNode = await this.#p2pNodeService.createP2pNode( createP2pOptions );
+                                await this.#p2pNode.start();
                                 await this.startPubSub();
 
                                 //	...
-                                const multiaddrs = this.p2pNode.getMultiaddrs();
+                                const multiaddrs = this.#p2pNode.getMultiaddrs();
                                 const multiaddrsStrArring = multiaddrs.map( ma => ma.toString() );
                                 // multiaddrs.forEach( ( ma ) =>
                                 // {
@@ -223,14 +231,14 @@ export class RelayService
                                 //
                                 const leaderElectionOptions = {
                                         peerId : peerIdObject.toString(),
-                                        pClsRelayService : this.relayServiceThis
+                                        pClsRelayService : this.#relayServiceThis
                                 };
-                                this.leaderElection = new LeaderElection( leaderElectionOptions );
-                                await this.subscribe( this.leaderElection.getElectionTopic(), async ( param ) =>
+                                this.#leaderElection = new LeaderElection( leaderElectionOptions );
+                                await this.subscribe( this.#leaderElection.getElectionTopic(), async ( param ) =>
                                 {
                                         try
                                         {
-                                                await this.leaderElection.handleElectionMessage( param );
+                                                await this.#leaderElection.handleElectionMessage( param );
                                         }
                                         catch ( err )
                                         {
@@ -240,7 +248,7 @@ export class RelayService
                                 });
                                 setTimeout( async () =>
                                 {
-                                        await this.leaderElection.start();
+                                        await this.#leaderElection.start();
 
                                 }, 1000 );
 
@@ -250,12 +258,12 @@ export class RelayService
                                 const relayDoctorOptions = {
                                         maxQueueSize : defaultMaxQueueSize,
                                         peerId : peerIdObject.toString(),
-                                        pClsRelayService : this.relayServiceThis,
+                                        pClsRelayService : this.#relayServiceThis,
                                 };
-                                this.relayDoctor = new RelayDoctor( relayDoctorOptions );
+                                this.#relayDoctor = new RelayDoctor( relayDoctorOptions );
                                 setTimeout( () =>
                                 {
-                                        this.relayDoctor.start();
+                                        this.#relayDoctor.start();
                                 }, 1000 );
 
 
@@ -272,7 +280,7 @@ export class RelayService
                                 });
 
                                 //	...
-                                resolve( this.p2pNode );
+                                resolve( this.#p2pNode );
                         }
                         catch ( err )
                         {
@@ -288,10 +296,10 @@ export class RelayService
         {
                 //LogUtil.say( 'Stopping...' )
                 this.log.info( `${ this.constructor.name }.createRelay :: ))) Stopping...` );
-                if ( this.p2pNode )
+                if ( this.#p2pNode )
                 {
                         this._endBusinessPing();
-                        await this.p2pNode.stop();
+                        await this.#p2pNode.stop();
                 }
 
                 //metricsServer && await metricsServer.close()
@@ -303,7 +311,7 @@ export class RelayService
          */
         isLeader()
         {
-                return this.leaderElection && this.leaderElection.isLeader();
+                return this.#leaderElection && this.#leaderElection.isLeader();
         }
 
         /**
@@ -313,9 +321,9 @@ export class RelayService
         {
                 try
                 {
-                        if ( this.leaderElection )
+                        if ( this.#leaderElection )
                         {
-                                const peerIdStr = this.leaderElection.getLeaderPeerId();
+                                const peerIdStr = this.#leaderElection.getLeaderPeerId();
                                 return peerIdFromString( peerIdStr );
                         }
                 }
@@ -339,13 +347,13 @@ export class RelayService
                                 this.log.error( `${ this.constructor.name }.onReceivedMessage :: null param` );
                                 return;
                         }
-                        if ( ! ( param.topic in this.subscribes ) )
+                        if ( ! ( param.topic in this.#subscribes ) )
                         {
                                 //console.error( `${ this.constructor.name } :: topic(${ param.topic }) has no subscribers` );
                                 this.log.error( `${ this.constructor.name }.onReceivedMessage :: topic(${ param.topic }) has no subscribers` );
                                 return;
                         }
-                        if ( ! _.isFunction( this.subscribes[ param.topic ] ) )
+                        if ( ! _.isFunction( this.#subscribes[ param.topic ] ) )
                         {
                                 //console.error( `${ this.constructor.name } :: handler for topic(${ param.topic }) is invalid` );
                                 this.log.error( `${ this.constructor.name }.onReceivedMessage :: handler for topic(${ param.topic }) is invalid` );
@@ -361,7 +369,7 @@ export class RelayService
                         // console.doctor( `- body :`, param.body );
 
                         //	callback
-                        this.subscribes[ param.topic ]( param );
+                        this.#subscribes[ param.topic ]( param );
                 }
                 catch ( err )
                 {
@@ -386,7 +394,7 @@ export class RelayService
                 {
                         try
                         {
-                                if ( ! this.p2pNode )
+                                if ( ! this.#p2pNode )
                                 {
                                         return reject( `${ this.constructor.name }.subscribe :: p2pNode was not created` );
                                 }
@@ -403,9 +411,9 @@ export class RelayService
                                 try
                                 {
                                         await this.startPubSub();
-                                        await this.p2pNode.services.pubsub.unsubscribe( topic );
-                                        await this.p2pNode.services.pubsub.subscribe( topic );
-                                        this.subscribes[ topic ] = callback;
+                                        await this.#p2pNode.services.pubsub.unsubscribe( topic );
+                                        await this.#p2pNode.services.pubsub.subscribe( topic );
+                                        this.#subscribes[ topic ] = callback;
                                 }
                                 catch ( errSubscribe )
                                 {
@@ -436,7 +444,7 @@ export class RelayService
                 {
                         try
                         {
-                                if ( ! this.p2pNode )
+                                if ( ! this.#p2pNode )
                                 {
                                         return reject( `${ this.constructor.name } :: p2pNode was not created` );
                                 }
@@ -448,12 +456,12 @@ export class RelayService
                                 try
                                 {
                                         await this.startPubSub();
-                                        await this.p2pNode.services.pubsub.unsubscribe( topic );
-                                        if ( _.isObject( this.subscribes ) )
+                                        await this.#p2pNode.services.pubsub.unsubscribe( topic );
+                                        if ( _.isObject( this.#subscribes ) )
                                         {
-                                                if ( this.subscribes.hasOwnProperty( topic ) )
+                                                if ( this.#subscribes.hasOwnProperty( topic ) )
                                                 {
-                                                        delete this.subscribes[ topic ];
+                                                        delete this.#subscribes[ topic ];
                                                 }
                                         }
                                 }
@@ -494,7 +502,7 @@ export class RelayService
                 {
                         try
                         {
-                                if ( ! this.p2pNode )
+                                if ( ! this.#p2pNode )
                                 {
                                         return reject( `${ this.constructor.name }.publish :: p2pNode was not created` );
                                 }
@@ -535,13 +543,13 @@ export class RelayService
                                          *      @typedef {import('@libp2p/interface').PublishResult} PublishResult
                                          *      @type {Promise<PublishResult>}
                                          */
-                                        publishResult = await this.p2pNode.services.pubsub.publish( topic, pubData );
+                                        publishResult = await this.#p2pNode.services.pubsub.publish( topic, pubData );
 
                                         //
                                         //	copy from js-libp2p-gossipsub
                                         //	gossip happens during the heartbeat
                                         //
-                                        await pEvent( this.p2pNode.services.pubsub, 'gossipsub:heartbeat' );
+                                        await pEvent( this.#p2pNode.services.pubsub, 'gossipsub:heartbeat' );
 
                                         /**
                                          *      whether to diagnose the publishing result, log publishData
@@ -552,7 +560,7 @@ export class RelayService
                                                         topic : topic,
                                                         data : data,
                                                 };
-                                                this.relayDoctor.diagnosePublishResult( publishResult, publishData ).then( _res =>{} ).catch( _err => {} );
+                                                this.#relayDoctor.diagnosePublishResult( publishResult, publishData ).then( _res =>{} ).catch( _err => {} );
                                         }
                                 }
                                 catch ( errPublishing )
@@ -576,11 +584,11 @@ export class RelayService
          */
         getPeerId()
         {
-                if ( ! this.p2pNode )
+                if ( ! this.#p2pNode )
                 {
                         throw new Error( `${ this.constructor.name }.getPeerId :: p2pNode was not created` );
                 }
-                return this.p2pNode.peerId;
+                return this.#p2pNode.peerId;
         }
 
         /**
@@ -588,14 +596,14 @@ export class RelayService
          */
         getPeers()
         {
-                if ( ! this.p2pNode )
+                if ( ! this.#p2pNode )
                 {
                         throw new Error( `${ this.constructor.name }.getPeers :: p2pNode was not created` );
                 }
 
                 try
                 {
-                        return this.p2pNode.services.pubsub.getPeers();
+                        return this.#p2pNode.services.pubsub.getPeers();
                 }
                 catch ( err )
                 {
@@ -612,14 +620,14 @@ export class RelayService
          */
         getSubscribers( topic )
         {
-                if ( ! this.p2pNode )
+                if ( ! this.#p2pNode )
                 {
                         throw new Error( `${ this.constructor.name }.getSubscribers :: p2pNode was not created` );
                 }
 
                 try
                 {
-                        return this.p2pNode.services.pubsub.getSubscribers( topic );
+                        return this.#p2pNode.services.pubsub.getSubscribers( topic );
                 }
                 catch ( err )
                 {
@@ -636,14 +644,14 @@ export class RelayService
          */
         getTopics()
         {
-                if ( ! this.p2pNode )
+                if ( ! this.#p2pNode )
                 {
                         throw new Error( `${ this.constructor.name }.getTopics :: p2pNode was not created` );
                 }
 
                 try
                 {
-                        return this.p2pNode.services.pubsub.getTopics();
+                        return this.#p2pNode.services.pubsub.getTopics();
                 }
                 catch ( err )
                 {
@@ -666,9 +674,9 @@ export class RelayService
                 {
                         try
                         {
-                                if ( ! this.p2pNode.services.pubsub.isStarted() )
+                                if ( ! this.#p2pNode.services.pubsub.isStarted() )
                                 {
-                                        await this.p2pNode.services.pubsub.start();
+                                        await this.#p2pNode.services.pubsub.start();
                                 }
                                 resolve();
                         }
@@ -723,13 +731,13 @@ export class RelayService
 
         printNetworkInfo()
         {
-                if ( this.networkPrinterHandler )
+                if ( this.#networkPrinterHandler )
                 {
-                        clearInterval( this.networkPrinterHandler );
-                        this.networkPrinterHandler = null;
+                        clearInterval( this.#networkPrinterHandler );
+                        this.#networkPrinterHandler = null;
                 }
 
-                this.networkPrinterHandler = setInterval( () =>
+                this.#networkPrinterHandler = setInterval( () =>
                 {
                         const allPeers = this.getPeers();
                         const allSubscribers = this.getSubscribers( this.subTopic );
@@ -737,9 +745,9 @@ export class RelayService
 
                         if ( this.compareNetworkChanging( allPeers, allSubscribers, allTopics ) )
                         {
-                                this.lastAllPeers = _.cloneDeep( allPeers );
-                                this.lastAllSubscribers = _.cloneDeep( allSubscribers );
-                                this.lastAllTopics = _.cloneDeep( allTopics );
+                                this.#lastAllPeers = _.cloneDeep( allPeers );
+                                this.#lastAllSubscribers = _.cloneDeep( allSubscribers );
+                                this.#lastAllTopics = _.cloneDeep( allTopics );
 
                                 // console.log( `]]]]]] ${ new Date().toLocaleString() } ]]]]]]` );
                                 // console.log( `]]]]]] allPeers :`, allPeers );
@@ -759,12 +767,12 @@ export class RelayService
                 allTopics
         )
         {
-                if ( ! this.lastAllPeers || ! this.lastAllSubscribers || ! this.lastAllTopics )
+                if ( ! this.#lastAllPeers || ! this.#lastAllSubscribers || ! this.#lastAllTopics )
                 {
                         //	changed
                         return true;
                 }
-                if ( ! _.isEqualWith( this.lastAllPeers, allPeers, (
+                if ( ! _.isEqualWith( this.#lastAllPeers, allPeers, (
                         a,
                         b
                 ) =>
@@ -774,14 +782,14 @@ export class RelayService
                 {
                         return true;
                 }
-                if ( ! _.isEqualWith( this.lastAllSubscribers, allSubscribers, (
+                if ( ! _.isEqualWith( this.#lastAllSubscribers, allSubscribers, (
                         a,
                         b
                 ) =>
                 {
                         return a.toString().trim().toLowerCase() === b.toString().trim().toLowerCase();
                 } ) )
-                        if ( ! _.isEqual( this.lastAllTopics, allTopics ) )
+                        if ( ! _.isEqual( this.#lastAllTopics, allTopics ) )
                         {
                                 return true;
                         }
@@ -798,22 +806,22 @@ export class RelayService
                 try
                 {
                         this._endBusinessPing();
-                        this.businessPingTimer = setInterval( async () =>
+                        this.#businessPingTimer = setInterval( async () =>
                         {
-                                if ( ! this.p2pNode )
+                                if ( ! this.#p2pNode )
                                 {
                                         //log( `${ this.constructor.name }._beginBusinessPing :: null this.p2pNode` );
                                         this.log.info( `${ this.constructor.name }._beginBusinessPing :: null this.p2pNode` );
                                         return false;
                                 }
-                                if ( ! _.isObject( this.subscribes ) )
+                                if ( ! _.isObject( this.#subscribes ) )
                                 {
                                         //log( `${ this.constructor.name }._beginBusinessPing :: notObject this.subscribes` );
                                         this.log.info( `${ this.constructor.name }._beginBusinessPing :: notObject this.subscribes` );
                                         return false;
                                 }
 
-                                let topics = _.keys( this.subscribes );
+                                let topics = _.keys( this.#subscribes );
                                 if ( 0 === topics.length )
                                 {
                                         //log( `${ this.constructor.name }._beginBusinessPing :: not topic in this.subscribes` );
@@ -829,7 +837,7 @@ export class RelayService
                                         await this.publish( topic, { bizPing : new Date().getTime() } );
                                 }
 
-                        }, this.businessPingInterval );
+                        }, this.#businessPingInterval );
                 }
                 catch ( err )
                 {
@@ -839,7 +847,7 @@ export class RelayService
                         {
                                 this._beginBusinessPing();
 
-                        }, this.businessPingInterval );
+                        }, this.#businessPingInterval );
                 }
         }
 
@@ -849,10 +857,10 @@ export class RelayService
          */
         _endBusinessPing()
         {
-                if ( this.businessPingTimer > 0 )
+                if ( this.#businessPingTimer > 0 )
                 {
-                        clearInterval( this.businessPingTimer );
-                        this.businessPingTimer = 0;
+                        clearInterval( this.#businessPingTimer );
+                        this.#businessPingTimer = 0;
                 }
         }
 }

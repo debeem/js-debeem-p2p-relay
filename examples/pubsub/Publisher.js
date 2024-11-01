@@ -24,7 +24,7 @@ class Publisher extends BasePubSub
 					{
 						//	ignore heartbeat
 						//console.log( `Publisher ******** bizPing ********` );
-						this.log.info( `${ this.constructor.name }.start :: Publisher ******** bizPing ********` );
+						this.log.debug( `${ this.constructor.name }.start :: Publisher ******** bizPing ********` );
 						return false;
 					}
 				} );

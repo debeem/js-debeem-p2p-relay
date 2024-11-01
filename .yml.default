@@ -22,6 +22,12 @@ P2P_RELAY_IS_LEADER : false
 P2P_RELAY_LEADER_PEER_ID :
 
 
+#
+#   min log level
+#
+P2P_RELAY_LOGGER_MIN_LOG_LEVEL: debug
+
+
 # cache
 REDIS_PORT: 6379
 REDIS_HOST: host.docker.internal

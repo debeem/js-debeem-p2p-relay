@@ -64,6 +64,7 @@
 		"debeem-queue": "^1.0.29",
 		"debeem-utils": "^1.0.77",
 		"deyml": "^1.0.3",
+		"ethers": "^6.13.4",
 		"ioredis": "^5.4.1",
 		"level": "^8.0.1",
 		"libp2p": "^1.9.4",

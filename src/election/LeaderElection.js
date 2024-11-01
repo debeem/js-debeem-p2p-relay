@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { isHexString, keccak256 } from "ethers";
 import {
 	defaultElectionMessageVersion,
 	isValidP2pElectionMessage,
@@ -10,8 +11,13 @@ import { PeerUtil } from "../utils/PeerUtil.js";
 import { ProcessUtil } from "debeem-utils";
 
 /**
- *    @typedef {import('@libp2p/interface-pubsub/src')} PublishResult
+ *	@typedef {import('@libp2p/interface-pubsub/src')} PublishResult
  */
+
+/**
+ * 	@typedef {import('@libp2p/interface')} Peer
+ */
+
 
 /**
  *	@typedef {Object} ElectionInitializationProps
@@ -35,13 +41,13 @@ export class LeaderElection
 	/**
 	 *      @typedef {RelayService}
 	 */
-	pClsRelayService = undefined;
+	#pClsRelayService = undefined;
 
 	/**
 	 * 	the peerId of this node
 	 *	@type { string | null}
 	 */
-	peerId = null;
+	#peerId = null;
 
 	/**
 	 * 	leader peerId
@@ -63,9 +69,9 @@ export class LeaderElection
 	 * 	    `peerId2`,
 	 * 	    `...`
 	 * 	]
-	 *	@type {Set<any>}
+	 *	@type {Set<string>}
 	 */
-	peers = new Set();
+	#intercommunicablePeers = new Set();
 
 	/**
 	 * 	Gossip topic for election
@@ -77,13 +83,13 @@ export class LeaderElection
 	 *	Election timer
 	 *	@type {NodeJS.Timeout}
 	 */
-	electionWaitingResultTimer = undefined;
+	#electionWaitingResultTimer = null;
 
 	/**
 	 * 	Election timeout value
 	 * 	@type {number}
 	 */
-	electionWaitingResultTimeout = 10 * 1000;
+	#electionWaitingResultTimeout = 10 * 1000;
 
 
 	/**
@@ -108,7 +114,13 @@ export class LeaderElection
 	 * 	timeout for heartbeat response
 	 *	@type {number}
 	 */
-	#heartbeatResetRestartingElectionTimerValue = 10 * 1000;
+	#heartbeatResetRestartingElectionTimerValue = 20 * 1000;
+
+	/**
+	 *	mark the election is in progress
+	 *	@type {boolean}
+	 */
+	#isElectionInProgress = false;
 
 	/**
 	 *	@type {Logger}
@@ -136,8 +148,8 @@ export class LeaderElection
 		}
 
 		//	...
-		this.peerId = props.peerId;
-		this.pClsRelayService = props.pClsRelayService;
+		this.#peerId = props.peerId;
+		this.#pClsRelayService = props.pClsRelayService;
 
 		if ( _.isString( props.electionMessageVersion ) &&
 			! _.isEmpty( props.electionMessageVersion ) )
@@ -175,9 +187,17 @@ export class LeaderElection
 	 */
 	hasLeader()
 	{
-		return _.isString( this.#leaderPeerId ) && ! _.isEmpty( this.#leaderPeerId );
+		return _.isString( this.getLeaderPeerId() ) && ! _.isEmpty( this.getLeaderPeerId() );
 	}
 
+	/**
+	 * 	returns intercommunicable peers
+	 *	@returns {Set<string>}
+	 */
+	getIntercommunicablePeers()
+	{
+		return this.#intercommunicablePeers;
+	}
 
 	/**
 	 *	@returns { Promise<boolean> }
@@ -247,13 +267,15 @@ export class LeaderElection
 				}
 				else if ( `peer:disconnect` === event )
 				{
-					if ( this.peers.has( peerIdStr ) )
+					if ( this.#intercommunicablePeers.has( peerIdStr ) )
 					{
-						this.peers.delete( peerIdStr );
+						this.log.info( `${ this.constructor.name }.handlePeerEvent :: 🍄 will remove peer[${ peerIdStr }] from intercommunicablePeers` );
+						this.#intercommunicablePeers.delete( peerIdStr );
 					}
-					if ( this.#leaderPeerId === peerIdStr )
+					if ( this.getLeaderPeerId() === peerIdStr )
 					{
 						//	Start a new election if the leader goes offline
+						this.log.info( `${ this.constructor.name }.handlePeerEvent :: 🦄 will start a new election while the leader peer[${ peerIdStr }] goes offline` );
 						await this.#startElection();
 					}
 				}
@@ -321,9 +343,9 @@ export class LeaderElection
 					/**
 					 * 	if the peer does not exist, add it to the set
 					 */
-					if ( ! this.peers.has( electionPeerId ) )
+					if ( ! this.#intercommunicablePeers.has( electionPeerId ) )
 					{
-						this.peers.add( electionPeerId );
+						this.#intercommunicablePeers.add( electionPeerId );
 						await this.#startElection();
 					}
 				}
@@ -366,7 +388,19 @@ export class LeaderElection
 		{
 			try
 			{
-				this.log.info( `${ this.constructor.name }.#startElection :: 🌼 Starting election...` );
+				this.log.debug( `${ this.constructor.name }.#startElection :: 🌼 Starting election...` );
+
+				if ( this.#isElectionInProgress )
+				{
+					this.log.debug( `${ this.constructor.name }.#startElection :: 🐸 quit while election is in progress.` );
+					return resolve( true );
+				}
+
+				/**
+				 * 	election is in progress
+				 * 	@type {boolean}
+				 */
+				this.#isElectionInProgress = true;
 
 				/**
 				 * 	update leader status
@@ -382,23 +416,34 @@ export class LeaderElection
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( `election` )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.peerId )
+					.setElectionPeerId( this.#peerId )
 					.build();
 				await this.#broadcast( message );
 
-				//	Compare with other nodes
-				if ( _.isNumber( this.electionWaitingResultTimer ) )
+				/**
+				 * 	wait for the election result
+				 *	- compare with other nodes
+				 */
+				if ( this.#electionWaitingResultTimer )
 				{
-					clearTimeout( this.electionWaitingResultTimer );
-					this.electionWaitingResultTimer = undefined;
+					clearTimeout( this.#electionWaitingResultTimer );
+					this.#electionWaitingResultTimer = undefined;
 				}
-				this.electionWaitingResultTimer = setTimeout( async () =>
+				this.#electionWaitingResultTimer = setTimeout( async () =>
 				{
 					//	...
 					await this.#calcElectionResult();
+
+					/**
+					 * 	election is in progress
+					 * 	@type {boolean}
+					 */
+					this.#isElectionInProgress = false;
+
+					//	...
 					resolve( true );
 
-				}, this.electionWaitingResultTimeout );
+				}, this.#electionWaitingResultTimeout );
 			}
 			catch ( err )
 			{
@@ -422,11 +467,11 @@ export class LeaderElection
 			//	only leader broadcast this heartbeat
 			if ( this.#isLeader )
 			{
-				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 Leader ${ this.peerId } broadcast heartbeat` );
+				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 Leader ${ this.#peerId } broadcast heartbeat` );
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( P2pElectionMessageType.HEARTBEAT )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.peerId )
+					.setElectionPeerId( this.#peerId )
 					.build();
 				await this.#broadcast( message );
 			}
@@ -446,10 +491,11 @@ export class LeaderElection
 		}
 		this.#heartbeatResetRestartingElectionTimer = setTimeout( async () =>
 		{
-			this.log.info( `${ this.constructor.name }.#resetRestartElectionTimer :: 💔💔💔 Leader ${ this.#leaderPeerId } is unreachable, starting a new election...` );
-
-			//	...
-			this.peers.delete( this.#leaderPeerId );
+			this.log.info( `${ this.constructor.name }.#resetRestartElectionTimer :: 💔💔💔 Leader ${ this.getLeaderPeerId() } is unreachable, starting a new election...` );
+			if ( this.hasLeader() )
+			{
+				this.#intercommunicablePeers.delete( this.getLeaderPeerId() );
+			}
 
 			/**
 			 * 	update leader status
@@ -485,8 +531,13 @@ export class LeaderElection
 				{
 					return reject( `${ this.constructor.name }.#handleElection :: invalid messageBody.electionMessageType` );
 				}
+				if ( ! _.isString( this.#peerId ) || _.isEmpty( this.#peerId ) )
+				{
+					return reject( `${ this.constructor.name }.#handleElection :: invalid this.#peerId` );
+				}
 
-				this.log.info( `${ this.constructor.name }.#handleElection :: messageBody: [${ JSON.stringify( messageBody ) }]` );
+				//	...
+				this.log.info( `${ this.constructor.name }.#handleElection :: 📣 messageBody: [${ JSON.stringify( messageBody ) }]` );
 
 				/**
 				 * 	@type {string}
@@ -497,11 +548,16 @@ export class LeaderElection
 					/**
 					 * 	if the leader has already been elected, ignore further election messages
 					 */
-					this.log.info( `${ this.constructor.name }.#handleElection :: 🍋 Already elected leader[${ this.#leaderPeerId }], ignoring election message from peer[${ electionPeerId }]` );
+					this.log.info( `${ this.constructor.name }.#handleElection :: 🍋 Already elected leader[${ this.getLeaderPeerId() }], ignoring election message from peer[${ electionPeerId }]` );
 					return resolve( true );
 				}
 
-				if ( electionPeerId > this.peerId )
+				/**
+				 *	compare their hash values
+				 */
+				const electionPeerIdHash = keccak256( new TextEncoder().encode( electionPeerId ) );
+				const thisPeerIdHash = keccak256( new TextEncoder().encode( this.#peerId ) );
+				if ( electionPeerIdHash > thisPeerIdHash )
 				{
 					this.log.info( `${ this.constructor.name }.#handleElection :: Node ${ electionPeerId } has higher priority, yielding...` );
 				}
@@ -554,12 +610,12 @@ export class LeaderElection
 				 * 	update leader status
 				 */
 				this.#updateLeaderStatus( {
-					isLeader : ( electionPeerId === this.peerId ),
+					isLeader : ( electionPeerId === this.#peerId ),
 					leaderPeerId : electionPeerId
 				} );
 
 				//	...
-				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 this peer[${ this.peerId }] is leader=${ this.#isLeader }` );
+				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 this peer[${ this.#peerId }] is leader=${ this.#isLeader }` );
 				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 ${ electionPeerId } has been elected as leader` );
 				resolve( true );
 			}
@@ -591,27 +647,51 @@ export class LeaderElection
 				{
 					return reject( `${ this.constructor.name }.#handleHeartbeat :: invalid messageBody.electionMessageType` );
 				}
-				if ( this.isLeader() )
+				if ( this.hasLeader() && this.isLeader() )
 				{
-					this.log.info( `${ this.constructor.name }.#handleHeartbeat :: i am leader, give up my own heartbeat processing` );
+					this.log.warn( `${ this.constructor.name }.#handleHeartbeat :: i am leader, give up my own heartbeat processing` );
 					return resolve( true );
 				}
 
 				//	...
-				this.log.info( `${ this.constructor.name }.#handleHeartbeat :: messageBody: [${ JSON.stringify( messageBody ) }]` );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: messageBody: `, messageBody );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: this.#isLeader=${ this.isLeader() }` );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: this.#leaderPeerId=${ this.getLeaderPeerId() }` );
 
 				/**
 				 * 	@type {string}
 				 */
 				const electionPeerId = messageBody.electionPeerId;
-				if ( electionPeerId === this.#leaderPeerId )
+				if ( this.hasLeader() )
 				{
-					this.log.info( `${ this.constructor.name }.#handleHeartbeat :: 🩵 Received heartbeat from leader: [${ electionPeerId }]` );
+					if ( electionPeerId === this.getLeaderPeerId() )
+					{
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 received heartbeat from leader: [${ electionPeerId }]` );
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 will reset restart election watch timer` );
 
-					/**
-					 * 	Reset timeout if heartbeat is received from our leader
-					 */
-					this.#resetRestartElectionTimer();
+						/**
+						 * 	Reset timeout if heartbeat is received from our leader
+						 */
+						this.#resetRestartElectionTimer();
+					}
+					else
+					{
+						/**
+						 * 	fatal error:
+						 * 	a heartbeat message is received, but it doesn't come from the marked leader
+						 *
+						 * 	Next Step:
+						 * 	re-start election
+						 */
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 heartbeat does not come from our leader: this.#leaderPeerId=${ this.getLeaderPeerId() }, electionPeerId=${ electionPeerId }` );
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 heartbeat does not come from our leader: this.peers : `, this.#intercommunicablePeers );
+						await this.#startElection();
+					}
+				}
+				else
+				{
+					this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 💊 heartbeat does not come from leader and i don't know who is leader` );
+					await this.#startElection();
 				}
 
 				//	...
@@ -636,21 +716,21 @@ export class LeaderElection
 		{
 			try
 			{
-				if ( ! _.isString( this.peerId ) ||
-					_.isEmpty( this.peerId ) )
+				if ( ! _.isString( this.#peerId ) ||
+					_.isEmpty( this.#peerId ) )
 				{
-					return reject( `${ this.constructor.name }.#announceVictory :: invalid this.peerId(${ this.peerId })` );
+					return reject( `${ this.constructor.name }.#announceVictory :: invalid this.peerId(${ this.#peerId })` );
 				}
 
 				//	...
-				this.log.info( `${ this.constructor.name }.#announceVictory :: 💚🦄🐥 peer[${ this.peerId }] is the new leader` );
+				this.log.info( `${ this.constructor.name }.#announceVictory :: 💚💚🦄🦄🐥🐥 peer[${ this.#peerId }] is the new leader` );
 
 				/**
 				 * 	update leader status
 				 */
 				this.#updateLeaderStatus( {
 					isLeader : true,
-					leaderPeerId : this.peerId
+					leaderPeerId : this.#peerId
 				} );
 
 				/**
@@ -659,7 +739,7 @@ export class LeaderElection
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( P2pElectionMessageType.VICTORY )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.peerId )
+					.setElectionPeerId( this.#peerId )
 					.build();
 				const broadcastResult = await this.#broadcast( message );
 				resolve( broadcastResult );
@@ -669,6 +749,55 @@ export class LeaderElection
 				reject( err );
 			}
 		} );
+	}
+
+	/**
+	 * 	query currently connected peerIds from node peerStore
+	 *	@param [rawPeerId]	{boolean}
+	 *	@returns {Promise< Array< PeerId | string > >}
+	 */
+	#queryConnectedPeersFromPeerStore( rawPeerId = false )
+	{
+		return new Promise( async ( resolve, reject ) =>
+		{
+			try
+			{
+				if ( this.#pClsRelayService &&
+					this.#pClsRelayService.getP2pNode() &&
+					this.#pClsRelayService.getP2pNode().peerStore )
+				{
+					/**
+					 *	@type {Peer[]}
+					 */
+					const connectedPeers = await this.#pClsRelayService.getP2pNode().peerStore.all({
+						filters: [
+							() => true
+						]
+					});
+					if ( Array.isArray( connectedPeers ) )
+					{
+						let peerIds = [];
+						for ( const peer of connectedPeers )
+						{
+							if ( peer && peer.id )
+							{
+								peerIds.push(
+									rawPeerId ? peer.id : peer.id.toString()
+								);
+							}
+						}
+
+						return resolve( peerIds );
+					}
+				}
+
+				resolve( [] );
+			}
+			catch ( err )
+			{
+				reject( err );
+			}
+		});
 	}
 
 	/**
@@ -684,10 +813,16 @@ export class LeaderElection
 			try
 			{
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: will calc result` );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId :`, this.peerId );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: peers :`, this.peers );
-				const higherNodes = Array.from( this.peers )
-					.filter( peer => peer > this.peerId );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId :`, this.#peerId );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: peers :`, this.#intercommunicablePeers );
+
+				const connectedPeerIds = await this.#queryConnectedPeersFromPeerStore();
+				const intercommunicablePeers = this.getIntercommunicablePeers();
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐳🐳🐳 connectedPeerIds :`, connectedPeerIds );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐡🐡🐡 intercommunicablePeers :`, intercommunicablePeers );
+
+				const higherNodes = Array.from( this.#intercommunicablePeers )
+					.filter( peer => peer > this.#peerId );
 				//console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
 				if ( 0 === higherNodes.length )
@@ -726,14 +861,14 @@ export class LeaderElection
 			{
 				if ( ! isValidP2pElectionMessage( message ) )
 				{
-					return reject( `${ this.constructor.name }.#broadcast :: invalid this.peerId(${ this.peerId })` );
+					return reject( `${ this.constructor.name }.#broadcast :: invalid this.peerId(${ this.#peerId })` );
 				}
-				if ( ! this.pClsRelayService )
+				if ( ! this.#pClsRelayService )
 				{
-					return reject( `${ this.constructor.name }.#broadcast :: invalid this.pClsRelayService(${ this.pClsRelayService })` );
+					return reject( `${ this.constructor.name }.#broadcast :: invalid this.pClsRelayService(${ this.#pClsRelayService })` );
 				}
 
-				const broadcastResult = await this.pClsRelayService.publish( this.#electionTopic, message );
+				const broadcastResult = await this.#pClsRelayService.publish( this.#electionTopic, message );
 				this.log.info( `${ this.constructor.name }.#broadcast :: ///***///***/// broadcastResult :`, broadcastResult );
 
 				//	...
@@ -780,6 +915,6 @@ export class LeaderElection
 		}
 
 		//	...
-		this.log.info( `${ this.constructor.name }.#updateLeaderStatus :: isLeader=${ this.#isLeader }, leaderPeerId=${ String( this.#leaderPeerId ) }` );
+		this.log.info( `${ this.constructor.name }.#updateLeaderStatus :: isLeader=${ this.isLeader() }, leaderPeerId=${ String( this.getLeaderPeerId() ) }` );
 	}
 }
