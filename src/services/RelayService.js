@@ -123,10 +123,10 @@ export class RelayService
 
         /**
          *    @public
-         *    @param p2pRelayOptions {P2pRelayOptions}
+         *    @param relayOptions {RelayOptions}
          *    @returns {Promise<Libp2p>}
          */
-        async createRelay( p2pRelayOptions )
+        async createRelay( relayOptions )
         {
                 return new Promise( async (
                         resolve,
@@ -140,42 +140,42 @@ export class RelayService
                                         return reject( `${ this.constructor.name }.createRelay :: already created` );
                                 }
 
-                                const errorP2pRelayOptions = VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions );
-                                if ( null !== errorP2pRelayOptions )
+                                const errorRelayOptions = VaRelayOptions.validateRelayOptions( relayOptions );
+                                if ( null !== errorRelayOptions )
                                 {
-                                        return reject( `${ this.constructor.name }.createRelay :: ${ errorP2pRelayOptions }` );
+                                        return reject( `${ this.constructor.name }.createRelay :: ${ errorRelayOptions }` );
                                 }
 
-                                if ( ! ProcessUtil.isValidPortNumber( p2pRelayOptions.port ) )
+                                if ( ! ProcessUtil.isValidPortNumber( relayOptions.port ) )
                                 {
-                                        p2pRelayOptions.port = LocalParamUtil.getDefaultPort();
+                                        relayOptions.port = LocalParamUtil.getDefaultPort();
                                 }
 
                                 //	...
-                                const peerIdObject = await PrepareUtil.preparePeerId( p2pRelayOptions.peerIdFilename );
+                                const peerIdObject = await PrepareUtil.preparePeerId( relayOptions.peerIdFilename );
                                 if ( null === peerIdObject )
                                 {
                                         return reject( `${ this.constructor.name }.createRelay :: failed to create/load peerId. Create a new peerId using [debeem-utils]` );
                                 }
 
                                 //	...
-                                const swarmKey = await PrepareUtil.prepareSwarmKey( p2pRelayOptions.swarmKeyFilename );
+                                const swarmKey = await PrepareUtil.prepareSwarmKey( relayOptions.swarmKeyFilename );
                                 if ( null === swarmKey )
                                 {
                                         return reject( `${ this.constructor.name }.createRelay :: invalid swarm key. Create a new swarm key using [debeem-utils]` );
                                 }
 
                                 //	multiaddrs
-                                this.log.info( `${ this.constructor.name }.createRelay :: p2pRelayOptions :`, p2pRelayOptions );
-                                const listenAddresses = PeerUtil.getListenAddresses( p2pRelayOptions.port );
+                                this.log.info( `${ this.constructor.name }.createRelay :: relayOptions :`, relayOptions );
+                                const listenAddresses = PeerUtil.getListenAddresses( relayOptions.port );
                                 //LogUtil.say( `listenAddresses: ${ listenAddresses.map( ( a ) => a ) }` )
                                 this.log.info( `${ this.constructor.name }.createRelay :: ))) listenAddresses: ${ listenAddresses.map( ( a ) => a ) }` );
 
                                 //	announce Addresses
-                                if ( Array.isArray( p2pRelayOptions.announceAddresses ) && p2pRelayOptions.announceAddresses.length > 0 )
+                                if ( Array.isArray( relayOptions.announceAddresses ) && relayOptions.announceAddresses.length > 0 )
                                 {
-                                        //LogUtil.say( `announceAddresses: ${ p2pRelayOptions.announceAddresses.map( ( a ) => a ) }` );
-                                        this.log.info( `${ this.constructor.name }.createRelay :: ))) announceAddresses: ${ p2pRelayOptions.announceAddresses.map( ( a ) => a ) }` );
+                                        //LogUtil.say( `announceAddresses: ${ relayOptions.announceAddresses.map( ( a ) => a ) }` );
+                                        this.log.info( `${ this.constructor.name }.createRelay :: ))) announceAddresses: ${ relayOptions.announceAddresses.map( ( a ) => a ) }` );
                                 }
 
                                 //	Create Relay
@@ -183,9 +183,9 @@ export class RelayService
                                         .setPeerId( peerIdObject )
                                         .setSwarmKey( swarmKey )
                                         .setListenAddresses( listenAddresses )
-                                        .setAnnounceAddresses( p2pRelayOptions.announceAddresses )
-                                        .setBootstrapperAddresses( p2pRelayOptions.bootstrapperAddresses )
-                                        .setPubsubPeerDiscoveryTopics( p2pRelayOptions.pubsubPeerDiscoveryTopics )
+                                        .setAnnounceAddresses( relayOptions.announceAddresses )
+                                        .setBootstrapperAddresses( relayOptions.bootstrapperAddresses )
+                                        .setPubsubPeerDiscoveryTopics( relayOptions.pubsubPeerDiscoveryTopics )
                                         .setCallbackPeerEvent( ( event, peerId ) =>
                                         {
                                                 if ( this.#leaderElection &&
@@ -193,10 +193,10 @@ export class RelayService
                                                 {
                                                         this.#leaderElection.handlePeerEvent( event, peerId );
                                                 }
-                                                if ( p2pRelayOptions &&
-                                                        _.isFunction( p2pRelayOptions.callbackPeerEvent ) )
+                                                if ( relayOptions &&
+                                                        _.isFunction( relayOptions.callbackPeerEvent ) )
                                                 {
-                                                        p2pRelayOptions.callbackPeerEvent( event, peerId );
+                                                        relayOptions.callbackPeerEvent( event, peerId );
                                                 }
                                         })
                                         .setCallbackMessage( ( param ) =>
@@ -205,8 +205,8 @@ export class RelayService
                                         } )
                                         .setTransports( P2pNodeTransports.CIRCUIT_RELAY | P2pNodeTransports.TCP )
                                         .build();
-                                //LogUtil.say( `pubsubPeerDiscoveryTopics: ${ p2pRelayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
-                                this.log.info( `${ this.constructor.name }.createRelay :: ))) pubsubPeerDiscoveryTopics: ${ p2pRelayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
+                                //LogUtil.say( `pubsubPeerDiscoveryTopics: ${ relayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
+                                this.log.info( `${ this.constructor.name }.createRelay :: ))) pubsubPeerDiscoveryTopics: ${ relayOptions.pubsubPeerDiscoveryTopics.map( t => t ) }` );
                                 this.#p2pNode = await this.#p2pNodeService.createP2pNode( createP2pOptions );
                                 await this.#p2pNode.start();
                                 await this.startPubSub();

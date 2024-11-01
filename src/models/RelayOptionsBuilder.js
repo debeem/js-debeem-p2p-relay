@@ -3,55 +3,54 @@ import { VaRelayOptions } from "../validators/VaRelayOptions.js";
 import _ from "lodash";
 
 /**
- *	@typedef  P2pRelayOptions {object}
- *	@property peerIdFilename {string}
- *	@property swarmKeyFilename {string}
- *	@property port {number}
- *	@property announceAddresses {string[]}
- *	@property bootstrapperAddresses {string[]}
- * 	@property pubsubPeerDiscoveryTopics {string[]}
- *	@property callbackPeerEvent {CallbackPeerEvent}
+ *    @typedef  RelayOptions {object}
+ *    @property peerIdFilename {string}
+ *    @property swarmKeyFilename {string}
+ *    @property port {number}
+ *    @property announceAddresses {string[]}
+ *    @property bootstrapperAddresses {string[]}
+ *    @property pubsubPeerDiscoveryTopics {string[]}
+ *    @property callbackPeerEvent {CallbackPeerEvent}
  */
 
 
-
 /**
- * 	@class
+ *    @class
  */
 export class RelayOptionsBuilder
 {
 	/**
-	 *	@type {string}
+	 *    @type {string}
 	 */
 	peerIdFilename = undefined;
 
 	/**
-	 *	@type {string}
+	 *    @type {string}
 	 */
 	swarmKeyFilename = undefined;
 
 	/**
-	 *	@type {number}
+	 *    @type {number}
 	 */
 	port = 9911;
 
 	/**
-	 *	@type {string[]}
+	 *    @type {string[]}
 	 */
 	announceAddresses = [];
 
 	/**
-	 *	@type {string[]}
+	 *    @type {string[]}
 	 */
 	bootstrapperAddresses = [];
 
 	/**
-	 *	@type {string[]}
+	 *    @type {string[]}
 	 */
 	pubsubPeerDiscoveryTopics = [ pubsubPeerDiscoveryDefaultTopic ];
 
 	/**
-	 * 	@type {CallbackPeerEvent}
+	 *    @type {CallbackPeerEvent}
 	 */
 	callbackPeerEvent = null;
 
@@ -61,7 +60,7 @@ export class RelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {RelayOptionsBuilder}
+	 *    @returns {RelayOptionsBuilder}
 	 */
 	static builder()
 	{
@@ -70,34 +69,37 @@ export class RelayOptionsBuilder
 
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setPeerIdFilename( /** @type {string} */ value )
+	setPeerIdFilename( /** @type {string} */
+			   value )
 	{
 		this.peerIdFilename = value;
 		return this;
 	}
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setSwarmKeyFilename( /** @type {string} */ value )
+	setSwarmKeyFilename( /** @type {string} */
+			     value )
 	{
 		this.swarmKeyFilename = value;
 		return this;
 	}
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setPort( /** @type {number} */ value )
+	setPort( /** @type {number} */
+		 value )
 	{
 		this.port = value;
 
 		if ( _.isNumber( value ) &&
 			Array.isArray( this.announceAddresses ) )
 		{
-			for ( let i = 0; i < this.announceAddresses.length; i ++ )
+			for ( let i = 0; i < this.announceAddresses.length; i++ )
 			{
 				this.announceAddresses[ i ] = this.announceAddresses[ i ].replace( /{P2P_PORT}/g, value.toString() );
 			}
@@ -107,13 +109,14 @@ export class RelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setAnnounceAddresses( /** @type {string[]} */ value )
+	setAnnounceAddresses( /** @type {string[]} */
+			      value )
 	{
 		if ( Array.isArray( value ) )
 		{
-			for ( let i = 0; i < value.length; i ++ )
+			for ( let i = 0; i < value.length; i++ )
 			{
 				value[ i ] = value[ i ].replace( /{P2P_PORT}/g, this.port.toString() );
 			}
@@ -124,18 +127,20 @@ export class RelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setBootstrapperAddresses( /** @type {string[]} */ value )
+	setBootstrapperAddresses( /** @type {string[]} */
+				  value )
 	{
 		this.bootstrapperAddresses = value;
 		return this;
 	}
 
 	/**
-	 *	@returns {this}
+	 *    @returns {this}
 	 */
-	setPubsubPeerDiscoveryTopics( /** @type {string[]} */ value )
+	setPubsubPeerDiscoveryTopics( /** @type {string[]} */
+				      value )
 	{
 		this.pubsubPeerDiscoveryTopics = value;
 		if ( ! this.pubsubPeerDiscoveryTopics.includes( pubsubPeerDiscoveryDefaultTopic ) )
@@ -146,8 +151,8 @@ export class RelayOptionsBuilder
 	}
 
 	/**
-	 *	@param value	{CallbackPeerEvent}
-	 *	@returns {RelayOptionsBuilder}
+	 *    @param value    {CallbackPeerEvent}
+	 *    @returns {RelayOptionsBuilder}
 	 */
 	setCallbackPeerEvent( value )
 	{
@@ -159,11 +164,11 @@ export class RelayOptionsBuilder
 	}
 
 	/**
-	 *	@returns {P2pRelayOptions}
+	 *    @returns {RelayOptions}
 	 */
 	build()
 	{
-		const error = VaRelayOptions.validateP2pRelayOptions( this );
+		const error = VaRelayOptions.validateRelayOptions( this );
 		if ( null !== error )
 		{
 			throw new Error( `${ this.constructor.name }.build :: ${ error }` );

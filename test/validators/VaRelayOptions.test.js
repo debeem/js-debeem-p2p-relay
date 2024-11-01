@@ -15,47 +15,47 @@ describe( 'VaRelayOptions', function ()
 
         describe( 'methods', function ()
         {
-                it( '#validateP2pRelayOptions', async () =>
+                it( '#validateRelayOptions', async () =>
                 {
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( undefined ), `invalid p2pRelayOptions` );
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( null ), `invalid p2pRelayOptions` );
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( 1 ), `invalid p2pRelayOptions` );
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( {} ), `invalid p2pRelayOptions` );
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( { peerId : null } ), `invalid p2pRelayOptions.port` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( undefined ), `invalid relayOptions` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( null ), `invalid relayOptions` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( 1 ), `invalid relayOptions` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( {} ), `invalid relayOptions` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( { peerId : null } ), `invalid relayOptions.port` );
 
-                        //assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( { peerIdFilename : `` } ), `invalid p2pRelayOptions.peerIdFilename` );
-                        //assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( { swarmKeyFilename : `` } ), `invalid p2pRelayOptions.swarmKeyFilename` );
+                        //assert.strictEqual( VaRelayOptions.validateRelayOptions( { peerIdFilename : `` } ), `invalid relayOptions.peerIdFilename` );
+                        //assert.strictEqual( VaRelayOptions.validateRelayOptions( { swarmKeyFilename : `` } ), `invalid relayOptions.swarmKeyFilename` );
 
-                        let p2pRelayOptions = {
+                        let relayOptions = {
                                 port : 0
                         };
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions ), `invalid p2pRelayOptions.port` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( relayOptions ), `invalid relayOptions.port` );
 
-                        p2pRelayOptions = {
+                        relayOptions = {
                                 port : 9999
                         };
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions ), `invalid p2pRelayOptions.announceAddresses` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( relayOptions ), `invalid relayOptions.announceAddresses` );
 
-                        p2pRelayOptions = {
+                        relayOptions = {
                                 port : 9999,
                                 announceAddresses : [],
                         };
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions ), `invalid p2pRelayOptions.bootstrapperAddresses` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( relayOptions ), `invalid relayOptions.bootstrapperAddresses` );
 
-                        p2pRelayOptions = {
+                        relayOptions = {
                                 port : 9999,
                                 announceAddresses : [],
                                 bootstrapperAddresses : [],
                         };
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions ), `invalid p2pRelayOptions.pubsubPeerDiscoveryTopics` );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( relayOptions ), `invalid relayOptions.pubsubPeerDiscoveryTopics` );
 
-                        p2pRelayOptions = {
+                        relayOptions = {
                                 port : 9999,
                                 announceAddresses : [],
                                 bootstrapperAddresses : [],
                                 pubsubPeerDiscoveryTopics : [],
                         };
-                        assert.strictEqual( VaRelayOptions.validateP2pRelayOptions( p2pRelayOptions ), null );
+                        assert.strictEqual( VaRelayOptions.validateRelayOptions( relayOptions ), null );
                 } );
         } );
 } );

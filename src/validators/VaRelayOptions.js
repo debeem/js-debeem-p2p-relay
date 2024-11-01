@@ -5,52 +5,51 @@ import { ProcessUtil } from "debeem-utils";
 export class VaRelayOptions
 {
         /**
-         *    @param p2pRelayOptions    {P2pRelayOptions}
+         *    @param relayOptions    {RelayOptions}
          *    @returns {string | null}
          */
-        static validateP2pRelayOptions( /** @type {P2pRelayOptions} */
-                                       p2pRelayOptions )
+        static validateRelayOptions( relayOptions )
         {
-                if ( ! p2pRelayOptions || ! _.isObject( p2pRelayOptions ) || _.isEmpty( p2pRelayOptions ) )
+                if ( ! relayOptions || ! _.isObject( relayOptions ) || _.isEmpty( relayOptions ) )
                 {
-                        return `invalid p2pRelayOptions`;
+                        return `invalid relayOptions`;
                 }
 
                 //
                 //	if the user does not specify the correct peerIdFilename,
                 //	the default peerIdFilename will be used
                 //
-                // if ( _.isString( p2pRelayOptions.peerIdFilename ) )
+                // if ( _.isString( relayOptions.peerIdFilename ) )
                 // {
-                //         if ( _.isEmpty( p2pRelayOptions.peerIdFilename ) )
+                //         if ( _.isEmpty( relayOptions.peerIdFilename ) )
                 //         {
-                //                 return `invalid p2pRelayOptions.peerIdFilename`;
+                //                 return `invalid relayOptions.peerIdFilename`;
                 //         }
                 // }
-                // if ( _.isString( p2pRelayOptions.swarmKeyFilename ) )
+                // if ( _.isString( relayOptions.swarmKeyFilename ) )
                 // {
-                //         if ( _.isEmpty( p2pRelayOptions.swarmKeyFilename ) )
+                //         if ( _.isEmpty( relayOptions.swarmKeyFilename ) )
                 //         {
-                //                 return `invalid p2pRelayOptions.swarmKeyFilename`;
+                //                 return `invalid relayOptions.swarmKeyFilename`;
                 //         }
                 // }
 
-                if ( ! ProcessUtil.isValidPortNumber( p2pRelayOptions.port ) )
+                if ( ! ProcessUtil.isValidPortNumber( relayOptions.port ) )
                 {
-                        return `invalid p2pRelayOptions.port`;
+                        return `invalid relayOptions.port`;
                 }
 
-                if ( ! Array.isArray( p2pRelayOptions.announceAddresses ) )
+                if ( ! Array.isArray( relayOptions.announceAddresses ) )
                 {
-                        return `invalid p2pRelayOptions.announceAddresses`;
+                        return `invalid relayOptions.announceAddresses`;
                 }
-                if ( ! Array.isArray( p2pRelayOptions.bootstrapperAddresses ) )
+                if ( ! Array.isArray( relayOptions.bootstrapperAddresses ) )
                 {
-                        return `invalid p2pRelayOptions.bootstrapperAddresses`;
+                        return `invalid relayOptions.bootstrapperAddresses`;
                 }
-                if ( ! Array.isArray( p2pRelayOptions.pubsubPeerDiscoveryTopics ) )
+                if ( ! Array.isArray( relayOptions.pubsubPeerDiscoveryTopics ) )
                 {
-                        return `invalid p2pRelayOptions.pubsubPeerDiscoveryTopics`;
+                        return `invalid relayOptions.pubsubPeerDiscoveryTopics`;
                 }
 
                 return null;
