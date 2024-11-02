@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { isHexString, keccak256 } from "ethers";
+import { keccak256 } from "ethers";
 import {
 	defaultElectionMessageVersion,
 	isValidP2pElectionMessage,

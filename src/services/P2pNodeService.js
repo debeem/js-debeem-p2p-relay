@@ -21,11 +21,10 @@ import { circuitRelayTransport, circuitRelayServer } from '@libp2p/circuit-relay
 //import { identifyService } from 'libp2p/identify'
 import { identify, identifyPush } from '@libp2p/identify'
 
-import { LogUtil, ProcessUtil } from 'debeem-utils';
+import { ProcessUtil } from 'debeem-utils';
 
 import { logger } from "@libp2p/logger";
 import _ from "lodash";
-import chalk from "chalk";
 import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
 import { P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 import { LoggerUtil } from "../utils/LoggerUtil.js";
@@ -34,7 +33,7 @@ import { LoggerUtil } from "../utils/LoggerUtil.js";
 
 //enable( 'debeem:gossipsub' );
 
-const log = logger( 'debeem:P2pNodeService' )
+//const log = logger( 'debeem:P2pNodeService' )
 //enable( 'debeem:P2pNodeService' );
 
 
