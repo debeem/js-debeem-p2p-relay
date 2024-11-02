@@ -324,7 +324,10 @@ export class RelayService
                         if ( this.#leaderElection )
                         {
                                 const peerIdStr = this.#leaderElection.getLeaderPeerId();
-                                return peerIdFromString( peerIdStr );
+                                if ( _.isString( peerIdStr ) && ! _.isEmpty( peerIdStr ) )
+                                {
+                                        return peerIdFromString( peerIdStr );
+                                }
                         }
                 }
                 catch ( err )
