@@ -29,9 +29,20 @@ import { ProcessUtil } from "debeem-utils";
 
 /**
  * 	@class
+ *
+ * 	Notice:
+ *
+ * 	BULLY ALGORITHM
+ * 	When using the Bully Algorithm as the election algorithm,
+ * 	to prevent spoofing attacks on peer IDs, we compare the hash values of the peer IDs instead of the IDs themselves.
  */
 export class LeaderElection
 {
+	/**
+	 *	@type {Map<string, string>}
+	 */
+	#hashCache = new Map();
+
 	/**
 	 * 	election message version
 	 *	@type {string}
@@ -102,19 +113,34 @@ export class LeaderElection
 	 * 	Heartbeat interval in milliseconds
 	 *	@type {number}
 	 */
-	#heartbeatIntervalValue = 5 * 1000;
+	#heartbeatIntervalValue = 3 * 1000;
 
 	/**
 	 * 	Timer for re-start Election
 	 * 	@type { NodeJS.Timeout | null }
 	 */
-	#heartbeatResetRestartingElectionTimer = null;
+	#leaderWatchDogTimer = null;
 
 	/**
-	 * 	timeout for heartbeat response
+	 * 	timeout for leader heartbeat response
 	 *	@type {number}
 	 */
-	#heartbeatResetRestartingElectionTimerValue = 20 * 1000;
+	#leaderWatchDogTimerValue = 10 * 1000;
+
+
+	/**
+	 * 	Timer for re-start Election
+	 * 	@type { NodeJS.Timeout | null }
+	 */
+	#allHandsWatchDogTimer = null;
+
+	/**
+	 * 	timeout for all hands heartbeat response
+	 *	@type {number}
+	 */
+	#allHandsWatchDogTimerValue = 10 * 1000;
+
+
 
 	/**
 	 *	mark the election is in progress
@@ -148,6 +174,7 @@ export class LeaderElection
 		}
 
 		//	...
+		this.log.debug( `${ this.constructor.name }.constructor :: 🎂🎂🎂 props.peerId=${ props.peerId }` );
 		this.#peerId = props.peerId;
 		this.#pClsRelayService = props.pClsRelayService;
 
@@ -156,6 +183,14 @@ export class LeaderElection
 		{
 			this.electionMessageVersion = props.electionMessageVersion;
 		}
+	}
+
+	/**
+	 *	@returns {string|null}
+	 */
+	getPeerId()
+	{
+		return this.#peerId;
 	}
 
 	/**
@@ -192,11 +227,11 @@ export class LeaderElection
 
 	/**
 	 * 	returns intercommunicable peers
-	 *	@returns {Set<string>}
+	 *	@returns {Array<string>}
 	 */
 	getIntercommunicablePeers()
 	{
-		return this.#intercommunicablePeers;
+		return Array.from( this.#intercommunicablePeers );
 	}
 
 	/**
@@ -272,6 +307,7 @@ export class LeaderElection
 						this.log.info( `${ this.constructor.name }.handlePeerEvent :: 🍄 will remove peer[${ peerIdStr }] from intercommunicablePeers` );
 						this.#intercommunicablePeers.delete( peerIdStr );
 					}
+
 					if ( this.getLeaderPeerId() === peerIdStr )
 					{
 						//	Start a new election if the leader goes offline
@@ -346,9 +382,12 @@ export class LeaderElection
 					if ( ! this.#intercommunicablePeers.has( electionPeerId ) )
 					{
 						this.#intercommunicablePeers.add( electionPeerId );
-						await this.#startElection();
+						this.log.debug( `${ this.constructor.name }.handleElectionMessage :: 💫 a new peer[${ electionPeerId }] join` );
 					}
 				}
+
+				//	...
+				this.log.debug( `${ this.constructor.name }.handleElectionMessage :: ❄️ this.#intercommunicablePeers: `, this.getIntercommunicablePeers() );
 
 				/**
 				 * 	process message
@@ -365,6 +404,12 @@ export class LeaderElection
 				{
 					await this.#handleHeartbeat( messageBody );
 				}
+
+				/**
+				 * 	check if there is an opportunity to become the leader
+				 */
+
+
 
 				//	...
 				resolve( true );
@@ -414,9 +459,9 @@ export class LeaderElection
 				 *	@type { P2pElectionMessage }
 				 */
 				const message = P2pElectionMessageBuilder.builder()
-					.setElectionMessageType( `election` )
+					.setElectionMessageType( P2pElectionMessageType.ELECTION )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.#peerId )
+					.setElectionPeerId( this.getPeerId() )
 					.build();
 				await this.#broadcast( message );
 
@@ -427,7 +472,7 @@ export class LeaderElection
 				if ( this.#electionWaitingResultTimer )
 				{
 					clearTimeout( this.#electionWaitingResultTimer );
-					this.#electionWaitingResultTimer = undefined;
+					this.#electionWaitingResultTimer = null;
 				}
 				this.#electionWaitingResultTimer = setTimeout( async () =>
 				{
@@ -467,11 +512,12 @@ export class LeaderElection
 			//	only leader broadcast this heartbeat
 			if ( this.#isLeader )
 			{
-				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 Leader ${ this.#peerId } broadcast heartbeat` );
+				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 Leader ${ this.getPeerId() } broadcast heartbeat` );
+				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 intercommunicablePeers :`, this.getIntercommunicablePeers() );
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( P2pElectionMessageType.HEARTBEAT )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.#peerId )
+					.setElectionPeerId( this.getPeerId() )
 					.build();
 				await this.#broadcast( message );
 			}
@@ -480,16 +526,16 @@ export class LeaderElection
 	}
 
 	/**
-	 * 	reset restarting election timer
+	 * 	reset leader watch dog
 	 */
-	#resetRestartElectionTimer()
+	#resetLeaderWatchDog()
 	{
-		if ( this.#heartbeatResetRestartingElectionTimer )
+		if ( this.#leaderWatchDogTimer )
 		{
-			clearTimeout( this.#heartbeatResetRestartingElectionTimer );
-			this.#heartbeatResetRestartingElectionTimer = null;
+			clearTimeout( this.#leaderWatchDogTimer );
+			this.#leaderWatchDogTimer = null;
 		}
-		this.#heartbeatResetRestartingElectionTimer = setTimeout( async () =>
+		this.#leaderWatchDogTimer = setTimeout( async () =>
 		{
 			this.log.info( `${ this.constructor.name }.#resetRestartElectionTimer :: 💔💔💔 Leader ${ this.getLeaderPeerId() } is unreachable, starting a new election...` );
 			if ( this.hasLeader() )
@@ -507,7 +553,33 @@ export class LeaderElection
 
 			await this.#startElection();
 
-		}, this.#heartbeatResetRestartingElectionTimerValue );
+		}, this.#leaderWatchDogTimerValue );
+	}
+
+	/**
+	 * 	reset all hands watch dog
+	 */
+	#resetAllHandsWatchDog()
+	{
+		if ( this.#allHandsWatchDogTimer )
+		{
+			clearTimeout( this.#allHandsWatchDogTimer );
+			this.#allHandsWatchDogTimer = null;
+		}
+		this.#allHandsWatchDogTimer = setTimeout( async () =>
+		{
+			this.log.info( `${ this.constructor.name }.#resetAllHandsWatchDog :: 💋💋💋 no one is unreachable, set myself as the leader` );
+			this.#intercommunicablePeers.clear();
+
+			/**
+			 * 	update leader status
+			 */
+			this.#updateLeaderStatus( {
+				isLeader : true,
+				leaderPeerId : this.getPeerId(),
+			} );
+
+		}, this.#allHandsWatchDogTimerValue );
 	}
 
 	/**
@@ -531,7 +603,7 @@ export class LeaderElection
 				{
 					return reject( `${ this.constructor.name }.#handleElection :: invalid messageBody.electionMessageType` );
 				}
-				if ( ! _.isString( this.#peerId ) || _.isEmpty( this.#peerId ) )
+				if ( ! _.isString( this.getPeerId() ) || _.isEmpty( this.getPeerId() ) )
 				{
 					return reject( `${ this.constructor.name }.#handleElection :: invalid this.#peerId` );
 				}
@@ -542,29 +614,47 @@ export class LeaderElection
 				/**
 				 * 	@type {string}
 				 */
-				const electionPeerId = messageBody.electionPeerId;
-				if ( this.hasLeader() )
-				{
-					/**
-					 * 	if the leader has already been elected, ignore further election messages
-					 */
-					this.log.info( `${ this.constructor.name }.#handleElection :: 🍋 Already elected leader[${ this.getLeaderPeerId() }], ignoring election message from peer[${ electionPeerId }]` );
-					return resolve( true );
-				}
+				const proposerPeerId = messageBody.electionPeerId;
 
 				/**
-				 *	compare their hash values
+				 *	compare them by their hash values
 				 */
-				const electionPeerIdHash = keccak256( new TextEncoder().encode( electionPeerId ) );
-				const thisPeerIdHash = keccak256( new TextEncoder().encode( this.#peerId ) );
-				if ( electionPeerIdHash > thisPeerIdHash )
+				const proposerPeerIdHash = this.#calcPeerIdHash( proposerPeerId );
+				const leaderPeerIdHash = this.#calcPeerIdHash( this.getLeaderPeerId() );
+				const thisPeerIdHash = this.#calcPeerIdHash( this.getPeerId() );
+				let hasOpportunityToBecomeLeader = false;
+				if ( this.hasLeader() )
 				{
-					this.log.info( `${ this.constructor.name }.#handleElection :: Node ${ electionPeerId } has higher priority, yielding...` );
+					hasOpportunityToBecomeLeader = ( thisPeerIdHash >= leaderPeerIdHash && thisPeerIdHash >= proposerPeerIdHash );
 				}
 				else
 				{
+					hasOpportunityToBecomeLeader = ( thisPeerIdHash >= proposerPeerIdHash );
+				}
+				if ( hasOpportunityToBecomeLeader )
+				{
+					//
 					//	Re-start the election if this node has higher ID
+					//
+					//	Since the current node believes it is qualified to become the leader (because its ID is equal to or higher),
+					//	it needs to initiate a new election to ensure that it can be elected as the leader.
+					//
+					this.log.debug( `${ this.constructor.name }.#handleElection :: 🌈 no peers have a higher peer ID than mine.` );
+					this.log.debug( `${ this.constructor.name }.#handleElection :: 🌈 i believe i have the potential to become the leader.` );
+					this.log.debug( `${ this.constructor.name }.#handleElection :: 🌈 try to initiate a new election` );
 					await this.#startElection();
+				}
+				else
+				{
+					//
+					//	If the received peerId is greater than mine,
+					//	it means there is a peer in the network with a higher priority.
+					//	Therefore, the current peer will choose to 'abandon' the election and wait for the peer with the higher ID to become the leader.
+					//
+					//	At this point, the current peer will not take any further action,
+					//	only recording this information and continuing to listen for messages from other peers.
+					//
+					this.log.debug( `${ this.constructor.name }.#handleElection :: peer [${ proposerPeerId }] has higher priority, yielding...` );
 				}
 
 				//	...
@@ -604,19 +694,34 @@ export class LeaderElection
 				/**
 				 * 	@type {string}
 				 */
-				const electionPeerId = messageBody.electionPeerId;
+				const proposerPeerId = messageBody.electionPeerId;
+
+				const proposerPeerIdHash = this.#calcPeerIdHash( proposerPeerId );
+				const leaderPeerIdHash = this.#calcPeerIdHash( this.getLeaderPeerId() );
+				const thisPeerIdHash = this.#calcPeerIdHash( this.getPeerId() );
+				if ( ( this.hasLeader() && proposerPeerIdHash < leaderPeerIdHash ) ||
+					( proposerPeerIdHash < thisPeerIdHash ) )
+				{
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, proposerPeerId: ${ proposerPeerId }` );
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, leaderPeerId: ${ this.getLeaderPeerId() }` );
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, thisPeerId: ${ this.getPeerId() }` );
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, ||| proposerPeerIdHash=${ proposerPeerIdHash }` );
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, ||| leaderPeerIdHash=${ leaderPeerIdHash }` );
+					this.log.debug( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, ||| thisPeerIdHash=${ thisPeerIdHash }` );
+					return reject( `${ this.constructor.name }.#handleVictory :: invalid proposerPeerId, less then mine` );
+				}
 
 				/**
 				 * 	update leader status
 				 */
 				this.#updateLeaderStatus( {
-					isLeader : ( electionPeerId === this.#peerId ),
-					leaderPeerId : electionPeerId
+					isLeader : ( proposerPeerId === this.getPeerId() ),
+					leaderPeerId : proposerPeerId
 				} );
 
 				//	...
-				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 this peer[${ this.#peerId }] is leader=${ this.#isLeader }` );
-				this.log.info( `${ this.constructor.name }.#handleVictory :: 🧡 ${ electionPeerId } has been elected as leader` );
+				this.log.info( `${ this.constructor.name }.#handleVictory :: 🚦🚦🚦 yielding, this peer[${ this.getPeerId() }] is leader=${ this.isLeader() }` );
+				this.log.info( `${ this.constructor.name }.#handleVictory :: 🚦🚦🚦 yielding, ${ proposerPeerId } has been elected as leader` );
 				resolve( true );
 			}
 			catch ( err )
@@ -655,42 +760,157 @@ export class LeaderElection
 
 				//	...
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: messageBody: `, messageBody );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: this.#peerId=${ this.getPeerId() }` );
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: this.#isLeader=${ this.isLeader() }` );
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: this.#leaderPeerId=${ this.getLeaderPeerId() }` );
 
 				/**
 				 * 	@type {string}
 				 */
-				const electionPeerId = messageBody.electionPeerId;
+				const proposerPeerId = messageBody.electionPeerId;
+
+				const proposerPeerIdHash = this.#calcPeerIdHash( proposerPeerId );
+				const leaderPeerIdHash = this.#calcPeerIdHash( this.getLeaderPeerId() );
+				const thisPeerIdHash = this.#calcPeerIdHash( this.getPeerId() );
+
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ||| proposerPeerIdHash=${ proposerPeerIdHash }` );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ||| leaderPeerIdHash=${ leaderPeerIdHash }` );
+				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ||| thisPeerIdHash=${ thisPeerIdHash }` );
+
+				let fromLeader = false;
 				if ( this.hasLeader() )
 				{
-					if ( electionPeerId === this.getLeaderPeerId() )
+					if ( proposerPeerIdHash === leaderPeerIdHash )
 					{
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 received heartbeat from leader: [${ electionPeerId }]` );
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 will reset restart election watch timer` );
-
-						/**
-						 * 	Reset timeout if heartbeat is received from our leader
-						 */
-						this.#resetRestartElectionTimer();
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 received heartbeat from leader: [${ proposerPeerId }]` );
+						fromLeader = true;
 					}
-					else
+					else if ( proposerPeerIdHash > leaderPeerIdHash )
 					{
-						/**
-						 * 	fatal error:
-						 * 	a heartbeat message is received, but it doesn't come from the marked leader
-						 *
-						 * 	Next Step:
-						 * 	re-start election
-						 */
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 heartbeat does not come from our leader: this.#leaderPeerId=${ this.getLeaderPeerId() }, electionPeerId=${ electionPeerId }` );
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 heartbeat does not come from our leader: this.peers : `, this.#intercommunicablePeers );
-						await this.#startElection();
+						//
+						//	the peer sending the heartbeat has an ID larger than the leader peer's ID;
+						//	it is simple and straightforward to accept this proposer peer as the new leader
+						//
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵🏓 replace the original leader [${ this.getLeaderPeerId() }] with new peer [${ proposerPeerId }]` );
+						this.#updateLeaderStatus({
+							isLeader : ( proposerPeerId === this.getPeerId() ),
+							leaderPeerId : proposerPeerId,
+						});
+						fromLeader = true;
 					}
 				}
 				else
 				{
-					this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 💊 heartbeat does not come from leader and i don't know who is leader` );
+					//
+					//	there is no leader
+					//	If the ID of the peer sending the heartbeat is greater than my peer's ID.
+					//	just accept this peer as the new leader
+					//
+					if ( proposerPeerIdHash >= thisPeerIdHash )
+					{
+						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ⛱️ no leader now, accept this proposer peer as the new leader` );
+						this.#updateLeaderStatus({
+							isLeader : ( proposerPeerId === this.getPeerId() ),
+							leaderPeerId : proposerPeerId,
+						});
+						fromLeader = true;
+					}
+					// else
+					// {
+					// 	//
+					// 	//	Since the current node believes it is qualified to become the leader (because its ID is equal to or higher),
+					// 	//	it needs to initiate a new election to ensure that it can be elected as the leader.
+					// 	//
+					// 	this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 no leader now, proposer peer does not have a higher peer ID than mine.` );
+					// 	this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 i believe i have the potential to become the new leader.` );
+					// 	this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 👠 try to initiate a new election` );
+					// 	await this.#startElection();
+					// }
+				}
+
+				if ( fromLeader )
+				{
+					/**
+					 * 	Reset leader watch dog if heartbeat is received from our leader
+					 */
+					this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 will reset leader watch dog` );
+					this.#resetLeaderWatchDog();
+				}
+
+				/**
+				 * 	reset all hands watch dog
+				 */
+				this.#resetAllHandsWatchDog();
+
+				//	...
+				resolve( true );
+			}
+			catch ( err )
+			{
+				reject( err );
+			}
+		} );
+	}
+
+	/**
+	 *	@param messageBody	{P2pElectionMessage}
+	 *	@returns { Promise<boolean> }
+	 */
+	#checkOpportunityToBecomeLeader( messageBody )
+	{
+		return new Promise( async (
+			resolve,
+			reject
+		) =>
+		{
+			try
+			{
+				if ( ! isValidP2pElectionMessage( messageBody ) )
+				{
+					return reject( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: invalid messageBody` );
+				}
+
+				//	...
+				this.log.debug( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: messageBody: `, messageBody );
+				this.log.debug( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: this.#isLeader=${ this.isLeader() }` );
+				this.log.debug( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: this.#leaderPeerId=${ this.getLeaderPeerId() }` );
+
+				/**
+				 * 	@type {string}
+				 */
+				const proposerPeerId = messageBody.electionPeerId;
+
+				const proposerPeerIdHash = this.#calcPeerIdHash( proposerPeerId );
+				const leaderPeerIdHash = this.#calcPeerIdHash( this.getLeaderPeerId() );
+				const thisPeerIdHash = this.#calcPeerIdHash( this.getPeerId() );
+				let hasOpportunity = false;
+				if ( this.hasLeader() )
+				{
+					if ( thisPeerIdHash > leaderPeerIdHash )
+					{
+						//
+						//	the peer sending the heartbeat has an ID larger than the leader peer's ID;
+						//	it is simple and straightforward to accept this proposer peer as the new leader
+						//
+						this.log.debug( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: 🍠 my peerId[${ this.getPeerId() }] great then leader's peerId[${ this.getLeaderPeerId() }]` );
+						hasOpportunity = true;
+					}
+				}
+				else
+				{
+					//
+					//	there is no leader
+					//	If my peer's ID is greater than the ID of the peer sending the message.
+					//
+					if ( thisPeerIdHash > proposerPeerIdHash )
+					{
+						this.log.debug( `${ this.constructor.name }.#checkOpportunityToBecomeLeader :: ⛱️ no leader now, my peerId[${ this.getPeerId() }] great then proposer's peerId[${ proposerPeerId }]` );
+						hasOpportunity = true;
+					}
+				}
+
+				if ( hasOpportunity )
+				{
 					await this.#startElection();
 				}
 
@@ -716,21 +936,21 @@ export class LeaderElection
 		{
 			try
 			{
-				if ( ! _.isString( this.#peerId ) ||
-					_.isEmpty( this.#peerId ) )
+				if ( ! _.isString( this.getPeerId() ) ||
+					_.isEmpty( this.getPeerId() ) )
 				{
-					return reject( `${ this.constructor.name }.#announceVictory :: invalid this.peerId(${ this.#peerId })` );
+					return reject( `${ this.constructor.name }.#announceVictory :: invalid this.peerId(${ this.getPeerId() })` );
 				}
 
 				//	...
-				this.log.info( `${ this.constructor.name }.#announceVictory :: 💚💚🦄🦄🐥🐥 peer[${ this.#peerId }] is the new leader` );
+				this.log.info( `${ this.constructor.name }.#announceVictory :: 💚💚🦄🦄🐥🐥 announce I/this peer[${ this.getPeerId() }] am/is the new leader` );
 
 				/**
 				 * 	update leader status
 				 */
 				this.#updateLeaderStatus( {
 					isLeader : true,
-					leaderPeerId : this.#peerId
+					leaderPeerId : this.getPeerId()
 				} );
 
 				/**
@@ -739,7 +959,7 @@ export class LeaderElection
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( P2pElectionMessageType.VICTORY )
 					.setElectionMessageVersion( this.electionMessageVersion )
-					.setElectionPeerId( this.#peerId )
+					.setElectionPeerId( this.getPeerId() )
 					.build();
 				const broadcastResult = await this.#broadcast( message );
 				resolve( broadcastResult );
@@ -813,19 +1033,33 @@ export class LeaderElection
 			try
 			{
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: will calc result` );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId :`, this.#peerId );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: peers :`, this.#intercommunicablePeers );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: this.peerId : ${ this.getPeerId() }` );
 
 				const connectedPeerIds = await this.#queryConnectedPeersFromPeerStore();
-				const intercommunicablePeers = this.getIntercommunicablePeers();
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐳🐳🐳 connectedPeerIds :`, connectedPeerIds );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐡🐡🐡 intercommunicablePeers :`, intercommunicablePeers );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐡🐡🐡 intercommunicablePeers :`, this.getIntercommunicablePeers() );
 
-				const higherNodes = Array.from( this.#intercommunicablePeers )
-					.filter( peer => peer > this.#peerId );
-				//console.log( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherNodes :`, higherNodes );
-				if ( 0 === higherNodes.length )
+				/**
+				 * 	Calculate the peers whose hash values are greater than the hash value of mine
+				 */
+				const thisPeerHash = this.#calcPeerIdHash( this.getPeerId() );
+				let higherPeers = [];
+				for ( const peerStr of this.#intercommunicablePeers )
+				{
+					if ( ! _.isString( peerStr ) || _.isEmpty( peerStr ) )
+					{
+						continue;
+					}
+
+					//	...
+					const peerHash = this.#calcPeerIdHash( peerStr );
+					if ( peerHash > thisPeerHash )
+					{
+						higherPeers.push( peerStr );
+					}
+				}
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: higherPeers :`, higherPeers );
+				if ( 0 === higherPeers.length )
 				{
 					this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: will announce victory` );
 					await this.#announceVictory(); // No higher node, become master
@@ -861,7 +1095,7 @@ export class LeaderElection
 			{
 				if ( ! isValidP2pElectionMessage( message ) )
 				{
-					return reject( `${ this.constructor.name }.#broadcast :: invalid this.peerId(${ this.#peerId })` );
+					return reject( `${ this.constructor.name }.#broadcast :: invalid this.peerId(${ this.getPeerId() })` );
 				}
 				if ( ! this.#pClsRelayService )
 				{
@@ -916,5 +1150,49 @@ export class LeaderElection
 
 		//	...
 		this.log.info( `${ this.constructor.name }.#updateLeaderStatus :: isLeader=${ this.isLeader() }, leaderPeerId=${ String( this.getLeaderPeerId() ) }` );
+	}
+
+	/**
+	 *	@param peerIdStrA	{string}
+	 *	@param peerIdStrB	{string}
+	 *	@returns {number}
+	 */
+	#peerIdCompare( peerIdStrA, peerIdStrB )
+	{
+		const peerIdStrAHash = this.#calcPeerIdHash( peerIdStrA );
+		const peerIdStrBHash = this.#calcPeerIdHash( peerIdStrB );
+		if ( null === peerIdStrAHash )
+		{
+			return -1;
+		}
+
+		/**
+		 * 	1	A > B
+		 * 	0	A = B
+		 * 	-1	A < B
+		 */
+		return peerIdStrAHash.localeCompare( peerIdStrBHash );
+	}
+
+	/**
+	 *
+	 *	@param peerIdString	{string}
+	 *	@returns {string|null}
+	 */
+	#calcPeerIdHash( peerIdString )
+	{
+		if ( ! _.isString( peerIdString ) || _.isEmpty( peerIdString ) )
+		{
+			return null;
+		}
+
+		if ( this.#hashCache.has( peerIdString ) )
+		{
+			return this.#hashCache.get( peerIdString );
+		}
+
+		const hashValue = keccak256( new TextEncoder().encode( peerIdString ) );
+		this.#hashCache.set( peerIdString, hashValue );
+		return hashValue;
 	}
 }

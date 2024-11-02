@@ -625,7 +625,7 @@ export class P2pNodeService
 			{
 				recBody = JSON.parse( stringData );
 				//console.log( `>.< recBody :`, recBody );
-				this.log.info( `${ this.constructor.name }.handleNodePeerMessage :: >.< recBody :`, recBody );
+				this.log.debug( `${ this.constructor.name }.handleNodePeerMessage :: >.< recBody :`, recBody );
 			}
 			catch ( err )
 			{
