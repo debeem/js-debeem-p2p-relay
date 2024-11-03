@@ -752,11 +752,11 @@ export class LeaderElection
 				{
 					return reject( `${ this.constructor.name }.#handleHeartbeat :: invalid messageBody.electionMessageType` );
 				}
-				if ( this.hasLeader() && this.isLeader() )
-				{
-					this.log.warn( `${ this.constructor.name }.#handleHeartbeat :: i am leader, give up my own heartbeat processing` );
-					return resolve( true );
-				}
+				// if ( this.hasLeader() && this.isLeader() )
+				// {
+				// 	this.log.warn( `${ this.constructor.name }.#handleHeartbeat :: i am leader, give up my own heartbeat processing` );
+				// 	return resolve( true );
+				// }
 
 				//	...
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: messageBody: `, messageBody );
@@ -777,6 +777,7 @@ export class LeaderElection
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ||| leaderPeerIdHash=${ leaderPeerIdHash }` );
 				this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: ||| thisPeerIdHash=${ thisPeerIdHash }` );
 
+				const fromMyself = ( this.getPeerId() === proposerPeerId );
 				let fromLeader = false;
 				if ( this.hasLeader() )
 				{
@@ -828,7 +829,8 @@ export class LeaderElection
 					// }
 				}
 
-				if ( fromLeader )
+				if ( fromLeader &&
+					! fromMyself )
 				{
 					/**
 					 * 	Reset leader watch dog if heartbeat is received from our leader
