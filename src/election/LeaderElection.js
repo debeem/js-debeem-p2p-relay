@@ -409,7 +409,7 @@ export class LeaderElection
 				}
 
 				//	...
-				this.log.debug( `${ this.constructor.name }.handleElectionMessage :: ❄️ this.#intercommunicablePeers: `, this.getIntercommunicablePeers() );
+				this.log.debug( `${ this.constructor.name }.handleElectionMessage :: ❄️ this.#intercommunicablePeers: `, { peers : this.getIntercommunicablePeers() } );
 
 				/**
 				 * 	process message
@@ -535,7 +535,7 @@ export class LeaderElection
 			if ( this.#isLeader )
 			{
 				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 Leader ${ this.getPeerId() } broadcast heartbeat` );
-				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 intercommunicablePeers :`, this.getIntercommunicablePeers() );
+				this.log.info( `${ this.constructor.name }.#startHeartbeat :: 💜 intercommunicablePeers :`, { peers : this.getIntercommunicablePeers() } );
 				const message = P2pElectionMessageBuilder.builder()
 					.setElectionMessageType( P2pElectionMessageType.HEARTBEAT )
 					.setElectionMessageVersion( this.electionMessageVersion )
@@ -1061,7 +1061,7 @@ export class LeaderElection
 
 				const connectedPeerIds = await this.#queryConnectedPeersFromPeerStore();
 				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐳🐳🐳 connectedPeerIds :`, connectedPeerIds );
-				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐡🐡🐡 intercommunicablePeers :`, this.getIntercommunicablePeers() );
+				this.log.info( `${ this.constructor.name }.#calcElectionResult > resultTimer :: 🐡🐡🐡 intercommunicablePeers :`, { peers : this.getIntercommunicablePeers() } );
 
 				/**
 				 * 	Calculate the peers whose hash values are greater than the hash value of mine
