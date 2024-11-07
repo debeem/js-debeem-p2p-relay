@@ -783,7 +783,7 @@ export class LeaderElection
 				{
 					if ( proposerPeerIdHash === leaderPeerIdHash )
 					{
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 received heartbeat from leader: [${ proposerPeerId }]` );
+						this.log.info( `${ this.constructor.name }.#handleHeartbeat :: 🩵 received heartbeat from leader: [${ proposerPeerId }]` );
 						fromLeader = true;
 					}
 					else if ( proposerPeerIdHash > leaderPeerIdHash )
@@ -792,7 +792,7 @@ export class LeaderElection
 						//	the peer sending the heartbeat has an ID larger than the leader peer's ID;
 						//	it is simple and straightforward to accept this proposer peer as the new leader
 						//
-						this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵🏓 replace the original leader [${ this.getLeaderPeerId() }] with new peer [${ proposerPeerId }]` );
+						this.log.info( `${ this.constructor.name }.#handleHeartbeat :: 🩵🏓 replace the original leader [${ this.getLeaderPeerId() }] with new peer [${ proposerPeerId }]` );
 						this.#updateLeaderStatus({
 							isLeader : ( proposerPeerId === this.getPeerId() ),
 							leaderPeerId : proposerPeerId,
@@ -835,7 +835,7 @@ export class LeaderElection
 					/**
 					 * 	Reset leader watch dog if heartbeat is received from our leader
 					 */
-					this.log.debug( `${ this.constructor.name }.#handleHeartbeat :: 🩵 will reset leader watch dog` );
+					this.log.info( `${ this.constructor.name }.#handleHeartbeat :: 🦋 will reset leader watch dog` );
 					this.#resetLeaderWatchDog();
 				}
 
