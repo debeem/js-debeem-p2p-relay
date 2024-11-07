@@ -20,14 +20,6 @@ import { ProcessUtil } from "debeem-utils";
 
 
 /**
- *	@typedef {Object} ElectionInitializationProps
- *	@property {string} peerId
- *	@property {RelayService} pClsRelayService
- *	@property {string} [electionMessageVersion]
- */
-
-
-/**
  * 	@class
  *
  * 	Notice:
@@ -53,6 +45,11 @@ export class LeaderElection
 	 *      @typedef {RelayService}
 	 */
 	#pClsRelayService = undefined;
+
+	/**
+	 *	@type {string}
+	 */
+	#groupKey = undefined;
 
 	/**
 	 * 	the peerId of this node
@@ -89,6 +86,12 @@ export class LeaderElection
 	 *	@type {string}
 	 */
 	#electionTopic = 'sync-leader-election';
+
+	/**
+	 * 	final Gossip topic with hash value of #groupKey
+	 *	@type {string}
+	 */
+	#finalElectionTopic = undefined;
 
 	/**
 	 *	Election timer
@@ -155,7 +158,7 @@ export class LeaderElection
 
 
 	/**
-	 *	@param props	{ElectionInitializationProps}
+	 *	@param props	{P2pElectionOptions}
 	 */
 	constructor( props )
 	{
@@ -177,6 +180,7 @@ export class LeaderElection
 		this.log.debug( `${ this.constructor.name }.constructor :: 🎂🎂🎂 props.peerId=${ props.peerId }` );
 		this.#peerId = props.peerId;
 		this.#pClsRelayService = props.pClsRelayService;
+		this.#groupKey = props.groupKey;
 
 		if ( _.isString( props.electionMessageVersion ) &&
 			! _.isEmpty( props.electionMessageVersion ) )
@@ -198,8 +202,26 @@ export class LeaderElection
 	 */
 	getElectionTopic()
 	{
-		return this.#electionTopic;
+		if ( this.#finalElectionTopic )
+                {
+			return this.#finalElectionTopic;
+		}
+
+		//	...
+		this.#finalElectionTopic = this.#electionTopic;
+		if ( _.isString( this.#groupKey ) &&
+		    ! _.isEmpty( this.#groupKey.trim() ) )
+                {
+			const groupKeyHash = keccak256( new TextEncoder().encode( this.#groupKey ) );
+			this.#finalElectionTopic = `${ this.#electionTopic }${ groupKeyHash }`;
+		}
+
+		//	...
+		this.log.info( `${ this.constructor.name }.getElectionTopic :: 🔫 this.#groupKey = ${ this.#groupKey }` );
+		this.log.info( `${ this.constructor.name }.getElectionTopic :: 🔫 this.#finalElectionTopic = ${ this.#finalElectionTopic }` );
+		return this.#finalElectionTopic;
 	}
+
 
 	/**
 	 *	@returns {boolean}
@@ -1104,7 +1126,7 @@ export class LeaderElection
 					return reject( `${ this.constructor.name }.#broadcast :: invalid this.pClsRelayService(${ this.#pClsRelayService })` );
 				}
 
-				const broadcastResult = await this.#pClsRelayService.publish( this.#electionTopic, message );
+				const broadcastResult = await this.#pClsRelayService.publish( this.getElectionTopic(), message );
 				this.log.info( `${ this.constructor.name }.#broadcast :: ///***///***/// broadcastResult :`, broadcastResult );
 
 				//	...

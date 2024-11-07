@@ -19,7 +19,14 @@ P2P_RELAY_DIAGNOSE_PUBLISHING_RESULT: true
 #   mark whether the current node is the leader and the leader's peerId
 #
 P2P_RELAY_IS_LEADER : false
-P2P_RELAY_LEADER_PEER_ID :
+P2P_RELAY_LEADER_PEER_ID:
+
+#
+#   use the groupKey to further partition subnet groups,
+#   in a private P2P network segmented by the swarmKey.
+#
+P2P_RELAY_GROUP_KEY: debeem-p2p-relay
+
 
 
 #

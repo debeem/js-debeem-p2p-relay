@@ -21,6 +21,7 @@ import { defaultMaxQueueSize, RelayDoctor } from "../doctor/RelayDoctor.js";
 import { LeaderElection } from "../election/LeaderElection.js";
 import { peerIdFromString } from "@libp2p/peer-id";
 import { LoggerUtil } from "../utils/LoggerUtil.js";
+import { P2pElectionOptionsBuilder } from "../models/P2pElectionOptionsBuilder.js";
 
 /**
  *      whether to diagnose the publishing result; log publishData
@@ -229,10 +230,12 @@ export class RelayService
                                 //
                                 //      begin leader election
                                 //
-                                const leaderElectionOptions = {
-                                        peerId : peerIdObject.toString(),
-                                        pClsRelayService : this.#relayServiceThis
-                                };
+                                const p2pRelayGroupKey = ProcessUtil.getParamStringValue( `P2P_RELAY_GROUP_KEY`, `` );
+                                const leaderElectionOptions = P2pElectionOptionsBuilder.builder()
+                                        .setPeerId( peerIdObject.toString() )
+                                        .setPClsRelayService( this.#relayServiceThis )
+                                        .setGroupKey( p2pRelayGroupKey )
+                                        .build();
                                 this.#leaderElection = new LeaderElection( leaderElectionOptions );
                                 await this.subscribe( this.#leaderElection.getElectionTopic(), async ( param ) =>
                                 {
