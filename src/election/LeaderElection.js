@@ -269,6 +269,8 @@ export class LeaderElection
 			try
 			{
 				this.log.info( `${ this.constructor.name }.start :: Starting...` );
+				this.log.info( `${ this.constructor.name }.start :: 🥇 this.#groupKey = ${ this.#groupKey }` );
+				this.log.info( `${ this.constructor.name }.start :: 🥇 this.#finalElectionTopic = ${ this.#finalElectionTopic }` );
 
 				/**
 				 *	start election
