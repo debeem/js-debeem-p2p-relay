@@ -246,7 +246,7 @@ export class RelayService
                                         catch ( err )
                                         {
                                                 //console.error( `${ this.constructor.name }.createRelay subscribe callback :: err`, err );
-                                                this.log.error( `${ this.constructor.name }.createRelay :: leaderElection.subscribe callback :: err:`, err );
+                                                this.log.error( `${ this.constructor.name }.createRelay :: leaderElection.subscribe callback :: err:`, { err } );
                                         }
                                 });
                                 setTimeout( async () =>

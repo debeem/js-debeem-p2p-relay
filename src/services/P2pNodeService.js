@@ -28,6 +28,7 @@ import _ from "lodash";
 import { VaP2pNodeOptions } from "../validators/VaP2pNodeOptions.js";
 import { P2pNodeTransports } from "../models/P2pNodeOptionsBuilder.js";
 import { LoggerUtil } from "../utils/LoggerUtil.js";
+import { mdns } from "@libp2p/mdns";
 //enable( 'libp2p:floodsub' );
 
 
@@ -190,6 +191,7 @@ export class P2pNodeService
 						list: p2pNodeOptions.bootstrapperAddresses
 					}) );
 				}
+				peerDiscoveryList.push( mdns() );
 				peerDiscoveryList.push(
 					//	https://github.com/libp2p/js-libp2p-pubsub-peer-discovery
 					pubsubPeerDiscovery({
@@ -351,7 +353,7 @@ export class P2pNodeService
 				{
 					const eventData = evt.detail;
 					//console.log( chalk.bgCyan( `))) ${ new Date().toLocaleString() } -> received subscription-change :` ), evt, eventData );
-					this.log.info( `${ this.constructor.name }.createP2pNode :: received subscription-change :`, evt, eventData );
+					this.log.info( `${ this.constructor.name }.createP2pNode :: ✳️ received subscription-change :`, { evt, eventData } );
 					// if ( eventData &&
 					//      _.has( eventData, 'subscriptions' ) &&
 					//      Array.isArray( eventData.subscriptions ) )
@@ -437,6 +439,22 @@ export class P2pNodeService
 			}
 			//log( 'Connection disconnected: %s', peerId.toString() ) // Emitted when a peer has been found
 			this.log.info( `${ this.constructor.name }.handleNodePeerDisconnect :: Connection disconnected peer[${ peerId.toString() }]` );
+
+			//	try to redial
+			setTimeout(async () =>
+			{
+				try
+				{
+					if ( await this.getNode().peerStore.has( peerId ) )
+					{
+						await this.getNode().dial( peerId )
+					}
+				}
+				catch ( err )
+				{}
+
+			}, 5000 );
+
 		}
 		catch ( err )
 		{

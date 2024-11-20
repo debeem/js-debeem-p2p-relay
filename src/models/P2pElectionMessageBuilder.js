@@ -12,9 +12,10 @@ import { VaP2pElectionMessage } from "../validators/VaP2pElectionMessage.js";
 
 /**
  * 	P2pElectionMessageType
- *	@type { Readonly<{HEARTBEAT: string, VICTORY: string, ELECTION: string}> }
+ *	@type { Readonly<{ PING: string, HEARTBEAT: string, VICTORY: string, ELECTION: string }> }
  */
 export const P2pElectionMessageType = Object.freeze( {
+	PING : `ping`,
 	HEARTBEAT : `heartbeat`,
 	ELECTION : `election`,
 	VICTORY : `victory`
