@@ -1,4 +1,5 @@
 import { pEvent } from "p-event";
+import { Multiaddr } from 'multiaddr'
 import { ProcessUtil, TypeUtil } from 'debeem-utils';
 import { P2pNodeService } from "./P2pNodeService.js";
 import { PeerUtil } from "../utils/PeerUtil.js";
@@ -22,6 +23,7 @@ import { LeaderElection } from "../election/LeaderElection.js";
 import { peerIdFromString } from "@libp2p/peer-id";
 import { LoggerUtil } from "../utils/LoggerUtil.js";
 import { P2pElectionOptionsBuilder } from "../models/P2pElectionOptionsBuilder.js";
+
 
 /**
  *      whether to diagnose the publishing result; log publishData
@@ -225,7 +227,7 @@ export class RelayService
                                 //
                                 //	begin heartbeat
                                 //
-                                this._beginBusinessPing();
+                                this.#beginBusinessPing();
 
                                 //
                                 //      begin leader election
@@ -269,6 +271,14 @@ export class RelayService
                                         this.#relayDoctor.start();
                                 }, 1000 );
 
+                                /**
+                                 *      attempt to proactively dial other members
+                                 */
+                                setInterval( () =>
+                                {
+                                        this.#triggerDialToGroupMembers();
+                                }, 5000 );
+
 
                                 //
                                 //	setup stop
@@ -301,7 +311,7 @@ export class RelayService
                 this.log.info( `${ this.constructor.name }.createRelay :: ))) Stopping...` );
                 if ( this.#p2pNode )
                 {
-                        this._endBusinessPing();
+                        this.#endBusinessPing();
                         await this.#p2pNode.stop();
                 }
 
@@ -807,11 +817,11 @@ export class RelayService
          *    @private
          *    @returns {void}
          */
-        _beginBusinessPing()
+        #beginBusinessPing()
         {
                 try
                 {
-                        this._endBusinessPing();
+                        this.#endBusinessPing();
                         this.#businessPingTimer = setInterval( async () =>
                         {
                                 if ( ! this.#p2pNode )
@@ -851,7 +861,7 @@ export class RelayService
                         this.log.error( `${ this.constructor.name }._beginBusinessPing :: exception :`, err );
                         setTimeout( () =>
                         {
-                                this._beginBusinessPing();
+                                this.#beginBusinessPing();
 
                         }, this.#businessPingInterval );
                 }
@@ -861,12 +871,88 @@ export class RelayService
          *    @private
          *    @returns {void}
          */
-        _endBusinessPing()
+        #endBusinessPing()
         {
                 if ( this.#businessPingTimer > 0 )
                 {
                         clearInterval( this.#businessPingTimer );
                         this.#businessPingTimer = 0;
                 }
+        }
+
+        /**
+         *      attempt to proactively dial other members
+         *      @returns { Promise< boolean > }
+         */
+        #triggerDialToGroupMembers()
+        {
+                return new Promise( async ( resolve, reject ) =>
+                {
+                        try
+                        {
+                                const triggerDial = ProcessUtil.getParamBooleanValue( `P2P_RELAY_GROUP_TRIGGER_DIAL`, true );
+                                if ( ! triggerDial )
+                                {
+                                        this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️🚫 P2P_RELAY_GROUP_TRIGGER_DIAL was disabled` );
+                                        return resolve( true );
+                                }
+
+                                const groupMembers = process.env.P2P_RELAY_GROUP_MEMBERS;
+                                if ( ! Array.isArray( groupMembers ) || 0 === groupMembers.length )
+                                {
+                                        this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: no group members configured` );
+                                        return;
+                                }
+
+                                const multiaddrs = this.getP2pNode().getMultiaddrs();
+                                const multiaddrsStrList = multiaddrs.map( ma => ma.toString() );
+                                if ( ! Array.isArray( multiaddrsStrList ) || 0 === multiaddrsStrList.length )
+                                {
+                                        this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: no Multiaddrs in this relay` );
+                                        return;
+                                }
+
+                                /**
+                                 *      all connected peers
+                                 *	@type {Peer[]}
+                                 */
+                                const connectedPeers = await this.getP2pNode().peerStore.all({
+                                        filters: [
+                                                () => true
+                                        ]
+                                });
+                                const connectedPeersStr = connectedPeers.map( peer => peer.id.toString() );
+
+                                /**
+                                 *      multiaddrs to call
+                                 *      @type {any[]}
+                                 */
+                                const multiaddrsToCall = groupMembers.filter( item => ! multiaddrsStrList.includes( item ) )
+                                        .concat(
+                                                multiaddrsStrList.filter( item => ! groupMembers.includes( item ) )
+                                        );
+                                for ( const multiaddr of multiaddrsToCall )
+                                {
+                                        if ( connectedPeersStr.find( peerStr => multiaddr.includes( peerStr ) ) )
+                                        {
+                                                this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️🔆 already connected to `, { multiaddr } );
+                                                continue;
+                                        }
+
+                                        this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️ will dial to `, { multiaddr } );
+                                        const ma = new Multiaddr( multiaddr );
+                                        const connection = await this.getP2pNode().dial( ma );
+                                        this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️✅ dialing result `, { connection } );
+                                }
+
+                                //      ...
+                                resolve( true );
+                        }
+                        catch ( err )
+                        {
+                                this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️❌ error `, { err } );
+                                resolve( false );
+                        }
+                });
         }
 }

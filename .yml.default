@@ -21,11 +21,18 @@ P2P_RELAY_DIAGNOSE_PUBLISHING_RESULT: true
 P2P_RELAY_IS_LEADER : false
 P2P_RELAY_LEADER_PEER_ID:
 
+
 #
 #   use the groupKey to further partition subnet groups,
 #   in a private P2P network segmented by the swarmKey.
 #
 P2P_RELAY_GROUP_KEY: debeem-p2p-relay
+#   whether to attempt to proactively dial to group members who are not yet connected
+P2P_RELAY_GROUP_TRIGGER_DIAL: true
+#   all members in group
+P2P_RELAY_GROUP_MEMBERS:
+  - /ip4/192.168.3.6/tcp/61610/p2p/QmaS6HGfowodZa1AQvWZmSu6S3kaZDgZ8mPdmnwzH9tinz
+  - /ip4/192.168.3.6/tcp/61611/p2p/QmY2jcGpRciCDpGKa2SbHNMzvWmeBKBYBEjGiEmnHZ9hJq
 
 
 
