@@ -933,11 +933,11 @@ export class RelayService
                                         );
                                 for ( const multiaddr of multiaddrsToCall )
                                 {
-                                        if ( connectedPeersStr.find( peerStr => multiaddr.includes( peerStr ) ) )
-                                        {
-                                                this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️🔆 already connected to `, { multiaddr } );
-                                                continue;
-                                        }
+                                        // if ( connectedPeersStr.find( peerStr => multiaddr.includes( peerStr ) ) )
+                                        // {
+                                        //         this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️🔆 already connected to `, { multiaddr } );
+                                        //         continue;
+                                        // }
 
                                         this.log.debug( `${ this.constructor.name }.#triggerDialToGroupMembers :: ☎️ will dial to `, { multiaddr } );
                                         const ma = new Multiaddr( multiaddr );
