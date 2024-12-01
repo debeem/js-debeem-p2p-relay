@@ -1,5 +1,6 @@
 import { AesCrypto } from "debeem-cipher";
 import _ from "lodash";
+import { LoggerUtil } from "../utils/LoggerUtil.js";
 
 /**
  * 	@class
@@ -7,6 +8,12 @@ import _ from "lodash";
 export class ElectionCrypto
 {
 	prefixPassword = `debeem_p2p_relay_password`;
+
+	/**
+	 *    @type {Logger}
+	 */
+	log = new LoggerUtil().logger;
+
 
 	/**
 	 *	encrypt message
@@ -19,6 +26,12 @@ export class ElectionCrypto
 	{
 		try
 		{
+			if ( ! _.isObject( messageObject ) )
+			{
+				this.log.error( `${ this.constructor.name }.encryptMessage :: invalid messageObject` );
+				return null;
+			}
+
 			const jsonString = JSON.stringify( messageObject );
 			return new AesCrypto().encrypt( jsonString, this.#getFinalPassword( password ) );
 		}
