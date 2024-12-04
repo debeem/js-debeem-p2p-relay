@@ -590,7 +590,7 @@ export class LeaderElection
 			 *	@type {Array<string>}
 			 */
 			const intercommunicablePeers = this.#candidatePeer.getIntercommunicablePeers();
-			this.log.debug( `${ this.constructor.name }.#startHeartbeat :: 🎀(${ intercommunicablePeers.length }) intercommunicablePeers:`, { intercommunicablePeers } );
+			this.log.info( `${ this.constructor.name }.#startHeartbeat :: 🎀(${ intercommunicablePeers.length }) intercommunicablePeers:`, { intercommunicablePeers } );
 
 		}, this.#heartbeatInterval.timeout );
 	}

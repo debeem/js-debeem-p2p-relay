@@ -517,20 +517,19 @@ export class P2pNodeService
 	{
 		if ( ! this.node )
 		{
-			//log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: node is not initialized` );
 			this.log.error( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: node is not initialized` );
 			return false;
 		}
 		if ( ! evt )
 		{
-			//log( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: undefined evt` );
 			this.log.error( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: undefined evt` );
 			return false;
 		}
 
 		//	Updated self multiaddrs?
-		//console.log( `))) Advertising with a relay address of ${ this.node.getMultiaddrs()[0].toString() }` );
-		this.log.info( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: ))) Advertising with a relay address of ${ this.node.getMultiaddrs()[0].toString() }` );
+		const multiaddrs = this.node.getMultiaddrs();
+		const relayAddress = ( Array.isArray( multiaddrs ) && multiaddrs.length > 0 ) ? multiaddrs[ 0 ].toString() : null;
+		this.log.info( `${ this.constructor.name }.handleNodeSelfPeerUpdate :: ))) Advertising with a relay address of ${ relayAddress }` );
 	}
 
 	/**
