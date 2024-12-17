@@ -1,6 +1,6 @@
 # debeem-p2p-relay
 
-The `debeem-p2p-relay` is developed based on the Libp2p library, enabling users to easily and quickly build private P2P networks and achieve real-time data synchronization between nodes. 
+The `debeem-p2p-relay` is developed based on the [Libp2p](https://github.com/libp2p/js-libp2p) library, enabling users to easily and quickly build private P2P networks and achieve real-time data synchronization between nodes. 
 
 It supports grouping an arbitrary number of nodes based on business requirements and dynamically, proactively electing a leader within each business group to facilitate collaboration between master and subordinate nodes.
 
